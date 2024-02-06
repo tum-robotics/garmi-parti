@@ -26,6 +26,11 @@ Q_TELEOP = utils.JointPositions(
 
 
 class CartesianLeader(interface.PandaInterface):
+    """
+    Teleoperation interface that uses a Panda robot as a haptic input
+    device in Cartesian space.
+    """
+
     def __init__(self, params: utils.TeleopParams) -> None:
         super().__init__(params)
         self.paused = False
@@ -66,6 +71,11 @@ class CartesianLeader(interface.PandaInterface):
 
 
 class JointLeader(interface.PandaInterface):
+    """
+    Teleoperation interface that uses a Panda robot as a haptic input
+    device in joint space.
+    """
+
     def __init__(self, params: utils.TeleopParams) -> None:
         super().__init__(params)
 
@@ -104,6 +114,10 @@ class JointLeader(interface.PandaInterface):
 
 
 class CartesianFollower(interface.PandaInterface):
+    """
+    Teleoperation interface that controls a Panda robot in Cartesian space.
+    """
+
     def _pre_teleop(self, container: utils.TeleopContainer) -> None:
         super()._pre_teleop(container)
 
@@ -157,6 +171,10 @@ class CartesianFollower(interface.PandaInterface):
 
 
 class JointFollower(interface.PandaInterface):
+    """
+    Teleoperation interface that controls a Panda robot in joint space.
+    """
+
     def _pre_teleop(self, container: utils.TeleopContainer) -> None:
         super()._pre_teleop(container)
 

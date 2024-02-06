@@ -124,6 +124,10 @@ class Interface(abc.ABC):
 
 
 class PandaInterface(Interface, abc.ABC):
+    """
+    Generic teleoperation interface for Panda robots.
+    """
+
     def __init__(self, params: utils.TeleopParams, has_gripper: bool = False) -> None:
         self.panda = utils.TeleopContainer(
             arm=panda_py.Panda(params.hostname, name="panda"),
@@ -137,12 +141,18 @@ class PandaInterface(Interface, abc.ABC):
         self.move_arm(self.q_idle)
 
     def move_arm(self, joint_positions: utils.JointPositions | None) -> None:
+        """
+        Move the robot arm into the given joint positions.
+        """
         if joint_positions is not None:
             self.panda.arm.move_to_joint_position(
                 joint_positions.positions, self.panda.params.speed_factor
             )
 
     def init_gripper(self, hostname: str, has_gripper: bool) -> libfranka.Gripper:
+        """
+        Connect to the hardware and initialize gripper.
+        """
         if has_gripper:
             gripper = libfranka.Gripper(hostname)
             gripper.move(0.08, 0.2)
@@ -199,6 +209,9 @@ class PandaInterface(Interface, abc.ABC):
         pass
 
     def fdir(self, container: utils.TeleopContainer) -> None:
+        """
+        Fault detection, isolation, and recovery.
+        """
         try:
             container.arm.raise_error()
         except RuntimeError as e:
@@ -212,6 +225,7 @@ class TwoArmPandaInterface(PandaInterface, abc.ABC):
     Common base class for two-arm teleoperators.
     """
 
+    # pylint: disable=W0231
     def __init__(
         self,
         left: utils.TeleopParams,
@@ -254,6 +268,9 @@ class TwoArmPandaInterface(PandaInterface, abc.ABC):
             gripper.grasp(0.0, 0.2, 60, 0.08, 0.08)
 
     def move_arms(self, joint_positions: utils.TwoArmJointPositions) -> None:
+        """
+        Move both arms to the given joint positions simultaneously.
+        """
         threads = []
 
         if joint_positions.left is not None:
@@ -293,6 +310,10 @@ class TwoArmPandaInterface(PandaInterface, abc.ABC):
 
 
 class TwoArmLogger:
+    """
+    Logs the robot states of two Panda robots.
+    """
+
     def __init__(
         self,
         interface: TwoArmPandaInterface,
@@ -300,19 +321,19 @@ class TwoArmLogger:
         log_directory: str = "./logs",
     ) -> None:
         self.log_directory = log_directory
-        self.ensure_directory_exists()
-        self.log_file = self.create_log_file()
+        self._ensure_directory_exists()
+        self.log_file = self._create_log_file()
         self._interface = interface
         self._frequency = frequency
         self._running = True
         self._thread = threading.Thread(target=self._run)
         self._thread.start()
 
-    def ensure_directory_exists(self) -> None:
+    def _ensure_directory_exists(self) -> None:
         if not pathlib.Path(self.log_directory).exists():
             pathlib.Path(self.log_directory).mkdir(parents=True)
 
-    def create_log_file(self) -> pathlib.Path:
+    def _create_log_file(self) -> pathlib.Path:
         current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         return pathlib.Path(self.log_directory) / f"log_{current_datetime}.csv"
 
@@ -333,5 +354,8 @@ class TwoArmLogger:
                 writer.writerow(row)
 
     def stop(self) -> None:
+        """
+        Stop the logger's thread.
+        """
         self._running = False
         self._thread.join()

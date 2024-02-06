@@ -15,6 +15,11 @@ _logger = logging.getLogger("gamepad")
 
 
 class GamepadHandle:
+    """
+    Listens to gamepad events using zmq to trigger actions on
+    the provided teleoperation client.
+    """
+
     def __init__(self, teleop_client: client.Client, hostname: str, port: int) -> None:
         self.gripper = {"left": True, "right": True}
         self.client = teleop_client
@@ -23,9 +28,9 @@ class GamepadHandle:
         self.socket.connect(f"tcp://{hostname}:{port}")
         self.socket.setsockopt(zmq.SUBSCRIBE, b"")
         self.running = True
-        threading.Thread(target=self.listen).start()
+        threading.Thread(target=self._listen).start()
 
-    def listen(self) -> None:
+    def _listen(self) -> None:
         while self.running:
             try:
                 event = pickle.loads(self.socket.recv())
@@ -49,4 +54,7 @@ class GamepadHandle:
         self.socket.close()
 
     def stop(self) -> None:
+        """
+        Stop listening and close connection.
+        """
         self.context.term()

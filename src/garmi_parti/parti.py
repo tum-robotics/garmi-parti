@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import collections
 import logging
-import os
 import pickle
 import time
 
@@ -40,7 +39,11 @@ DAMPING = [80, 0, 0, 0, 0, 0, 0]
 
 
 class Tickable:
-    def init_tickable(self, window_size: int = 1000, interval: int = 2000) -> None:
+    """
+    Tickable class that can be mixed in to track runtime.
+    """
+
+    def __init__(self, window_size: int = 1000, interval: int = 2000) -> None:
         self._t_last = time.perf_counter()
         self._t_window: collections.deque[float] = collections.deque(maxlen=window_size)
         self.num_ticks = 0
@@ -71,7 +74,7 @@ class CartesianLeader(panda.CartesianLeader, interface.TwoArmPandaInterface, Tic
         window_size: int = 1000,
         interval: int = 2000,
     ) -> None:
-        self.init_tickable(window_size, interval)
+        super(Tickable, self).__init__(window_size, interval)  # type: ignore[call-arg]
         self.paused = False
 
         q_idle = utils.TwoArmJointPositions(left=Q_IDLE_LEFT, right=Q_IDLE_RIGHT)
@@ -133,7 +136,7 @@ class JointLeader(panda.JointLeader, interface.TwoArmPandaInterface, Tickable):
         window_size: int = 1000,
         interval: int = 2000,
     ) -> None:
-        self.init_tickable(window_size, interval)
+        super(Tickable, self).__init__(window_size, interval)  # type: ignore[call-arg]
 
         q_idle = utils.TwoArmJointPositions(left=Q_IDLE_LEFT, right=Q_IDLE_RIGHT)
         q_teleop = utils.TwoArmJointPositions(left=Q_TELEOP_LEFT, right=Q_TELEOP_RIGHT)
@@ -202,13 +205,7 @@ def teleop() -> None:
     if args.debug:
         logging.basicConfig(level=logging.DEBUG, force=True)
 
-    left, right = os.environ.get("PANDA_LEFT"), os.environ.get("PANDA_RIGHT")
-    if left is None or right is None:
-        raise RuntimeError(
-            "Please make sure the environment variables "
-            + "PANDA_LEFT and PANDA_RIGHT are set to the respective robot hostnames."
-        )
-
+    left, right = utils.get_robot_hostnames()
     leader: interface.TwoArmPandaInterface
     if args.mode == "joint":
         leader = JointLeader(left, right)

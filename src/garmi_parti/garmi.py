@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import os
 import pickle
 import typing
 
@@ -57,6 +56,11 @@ TRANSFORM_RIGHT = transform.Rotation.from_euler(
 
 
 class CartesianFollower(panda.CartesianFollower, interface.TwoArmPandaInterface):
+    """
+    Teleoperation interface that controls the two arms of Garmi
+    in Cartesian space.
+    """
+
     def get_command(self) -> bytes:
         return pickle.dumps(
             utils.TwoArmWrench(
@@ -75,6 +79,11 @@ class CartesianFollower(panda.CartesianFollower, interface.TwoArmPandaInterface)
 
 
 class JointFollower(panda.JointFollower, interface.TwoArmPandaInterface):
+    """
+    Teleoperation interface that controls the two arms of Garmi
+    in joint space.
+    """
+
     stiffness: typing.ClassVar[np.ndarray] = [600, 600, 600, 600, 250, 150, 50]
     damping: typing.ClassVar[np.ndarray] = [50, 50, 50, 20, 20, 20, 10]
     filter_coeff = 1.0
@@ -102,6 +111,11 @@ class JointFollower(panda.JointFollower, interface.TwoArmPandaInterface):
 
 
 class OneArmCartesianFollower(CartesianFollower):
+    """
+    Teleoperation interface that controls one of the arms of Garmi
+    in Cartesian space.
+    """
+
     def __init__(
         self,
         side: typing.Literal["left", "right"],
@@ -131,6 +145,11 @@ class OneArmCartesianFollower(CartesianFollower):
 
 
 class OneArmJointFollower(JointFollower):
+    """
+    Teleoperation interface that controls one of the arms of Garmi
+    in joint space.
+    """
+
     def __init__(
         self,
         side: typing.Literal["left", "right"],
@@ -191,12 +210,7 @@ def teleop() -> None:
     )
     args = parser.parse_args()
 
-    left, right = os.environ.get("PANDA_LEFT"), os.environ.get("PANDA_RIGHT")
-    if left is None or right is None:
-        raise RuntimeError(
-            "Please make sure the environment variables "
-            + "PANDA_LEFT and PANDA_RIGHT are set to the respective robot hostnames."
-        )
+    left, right = utils.get_robot_hostnames()
     left_params = utils.TeleopParams(
         left, TRANSFORM_LEFT, Q_IDLE_LEFT, Q_TELEOP_LEFT, nullspace_stiffness=10
     )

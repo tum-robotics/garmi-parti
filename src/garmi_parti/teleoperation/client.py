@@ -20,6 +20,11 @@ socket.setdefaulttimeout(5.0)
 
 
 class Client:
+    """
+    Network client that connects a teleoperator input device (leader)
+    to a teleoperated robot (follower).
+    """
+
     def __init__(self, teleoperator: interface.Interface, host: str, port: int) -> None:
         self.rpc = client.ServerProxy(
             f"http://{host}:{port}", allow_none=True, use_builtin_types=True
@@ -27,9 +32,10 @@ class Client:
         self.host = host
         self.port = port
         self.teleoperator = teleoperator
-        self.start()
+        self.running_udp = False
+        self._start()
 
-    def run_udp(self) -> None:
+    def _run_udp(self) -> None:
         udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp.settimeout(1e-3)  # 1ms
         _logger.info("Sending UDP data to %s", (self.host, self.port))
@@ -49,10 +55,18 @@ class Client:
                 break
 
     def pause(self) -> None:
+        """
+        Pause the teleoperation service.
+        """
         self.rpc.pause()
         self.teleoperator.pause()
 
     def unpause(self) -> None:
+        """
+        Unpause the teleoperation service.
+        Triggers synchronization events of the teleoperator interfaces
+        before continuing teleoperation.
+        """
         if not self.rpc.synchronize(self.teleoperator.get_sync_command()):
             msg = "Synchronization failed"
             raise RuntimeError(msg)
@@ -60,12 +74,21 @@ class Client:
         self.teleoperator.unpause()
 
     def open(self, end_effector: str = "") -> None:
+        """
+        Sends a request to open an end-effector.
+        """
         self.rpc.open(end_effector)
 
     def close(self, end_effector: str = "") -> None:
+        """
+        Sends a request to close an end-effector.
+        """
         self.rpc.close(end_effector)
 
     def shutdown(self) -> None:
+        """
+        Shutdown the teleoperation network client.
+        """
         _logger.info("Shutting down teleoperation client")
         with contextlib.suppress(TimeoutError):
             self.rpc.stop()
@@ -73,7 +96,7 @@ class Client:
         self.udp_thread.join()
         self.teleoperator.post_teleop()
 
-    def start(self) -> None:
+    def _start(self) -> None:
         _logger.info("Connecting to %s", self.host)
 
         if not self.rpc.connect():
@@ -89,12 +112,15 @@ class Client:
         self.teleoperator.start_teleop()
 
         self.running_udp = True
-        self.udp_thread = threading.Thread(target=self.run_udp)
+        self.udp_thread = threading.Thread(target=self._run_udp)
         self.udp_thread.start()
 
     def reset(self) -> None:
+        """
+        Reset teleoperation client.
+        """
         self.shutdown()
-        self.start()
+        self._start()
 
 
 def user_interface(cli: Client) -> None:

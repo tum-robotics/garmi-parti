@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import os
 import typing
 
 import numpy as np
@@ -44,12 +43,7 @@ def teleop() -> None:
     parser.add_argument("-p", "--port", type=int, default=13701)
     args = parser.parse_args()
 
-    left, right = os.environ.get("PANDA_LEFT"), os.environ.get("PANDA_RIGHT")
-    if left is None or right is None:
-        raise RuntimeError(
-            "Please make sure the environment variables "
-            + "PANDA_LEFT and PANDA_RIGHT are set to the respective robot hostnames."
-        )
+    left, right = utils.get_robot_hostnames()
     left_params = utils.TeleopParams(
         left,
         transform.Rotation.from_euler(

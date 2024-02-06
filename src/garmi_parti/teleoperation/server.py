@@ -35,6 +35,11 @@ class _UDPServer(socketserver.UDPServer):
 
 
 class Server:
+    """
+    Teleoperation network server for a teleoperated robot that
+    accepts connection from teleoperation clients.
+    """
+
     def __init__(
         self, teleoperator: interface.Interface, port: int, udp_timeout: float = 1.0
     ) -> None:
@@ -48,49 +53,49 @@ class Server:
         self.rpc = server.SimpleXMLRPCServer(
             ("0.0.0.0", port), allow_none=True, use_builtin_types=True
         )
-        self.rpc.register_function(self.connect, "connect")
-        self.rpc.register_function(self.synchronize, "synchronize")
-        self.rpc.register_function(self.start)
+        self.rpc.register_function(self._connect, "connect")
+        self.rpc.register_function(self._synchronize, "synchronize")
+        self.rpc.register_function(self._start)
         self.rpc.register_function(self.pause)
         self.rpc.register_function(self.unpause)
         self.rpc.register_function(self.open)
         self.rpc.register_function(self.close)
-        self.rpc.register_function(self.stop)
+        self.rpc.register_function(self._stop)
 
         self.rpc_thread = threading.Thread(target=self.rpc.serve_forever)
         self.rpc_thread.start()
         self.running = True
-        self.check_timeout_thread = threading.Thread(target=self.check_timeout)
+        self.check_timeout_thread = threading.Thread(target=self._check_timeout)
         self.check_timeout_thread.start()
 
-    def check_timeout(self) -> None:
+    def _check_timeout(self) -> None:
         while self.running:
             if self.udp is not None:
                 try:
                     self.udp.t.check_timeout()
                 except utils.TeleopTimeoutError:
                     _logger.error("Client timed out.")
-                    self.stop()
+                    self._stop()
             time.sleep(1)
 
-    def connect(self) -> bool:
-        self.stop()
+    def _connect(self) -> bool:
+        self._stop()
         _logger.info("New teleoperation connection")
         return bool(self.teleoperator.pre_teleop())
 
-    def synchronize(self, command: bytes = b"") -> bool:
+    def _synchronize(self, command: bytes = b"") -> bool:
         _logger.info("Synchronizing teleoperators")
         self.teleoperator.set_sync_command(command)
         return True
 
-    def start(self) -> None:
+    def _start(self) -> None:
         self.teleoperator.start_teleop()
         self.udp = _UDPServer(("0.0.0.0", self.port), self.teleoperator)
         _logger.info("Listening for UDP data on %s", ("0.0.0.0", self.port))
         self.udp_thread = threading.Thread(target=self.udp.serve_forever)
         self.udp_thread.start()
 
-    def stop(self) -> None:
+    def _stop(self) -> None:
         if self.udp is not None:
             _logger.info("Stopping UDP")
             self.udp.shutdown()
@@ -99,22 +104,34 @@ class Server:
             self.teleoperator.post_teleop()
 
     def pause(self) -> None:
+        """
+        Pause teleoperation service.
+        """
         self.teleoperator.pause()
 
     def unpause(self) -> None:
+        """
+        Unpause teleoperation service.
+        """
         self.teleoperator.unpause()
 
     def open(self, end_effector: str = "") -> None:
+        """
+        Open an end-effector on the teleoperation interface.
+        """
         self.teleoperator.open(end_effector)
 
     def close(self, end_effector: str = "") -> None:
+        """
+        Close an end-effector on the teleoperation interface.
+        """
         self.teleoperator.close(end_effector)
 
     def shutdown(self) -> None:
         """
         Shutdown the server and end any running teleoperation.
         """
-        self.stop()
+        self._stop()
         _logger.info("Shutting down teleoperation server")
         self.rpc.shutdown()
         self.rpc_thread.join()

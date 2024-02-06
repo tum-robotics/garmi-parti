@@ -28,19 +28,19 @@ class Leader(interface.Interface):
         self.socket = self.context.socket(zmq.SUB)
         self.socket.connect("ipc:///tmp/parti-haptic-sim")
         self.socket.setsockopt(zmq.SUBSCRIBE, b"")
-        self.receive()
-        self.thread = threading.Thread(target=self.run)
+        self._receive()
+        self.thread = threading.Thread(target=self._run)
         self.thread.start()
 
-    def run(self) -> None:
+    def _run(self) -> None:
         while True:
             try:
-                self.receive()
+                self._receive()
             except zmq.error.ContextTerminated:
                 break
         self.socket.close()
 
-    def receive(self) -> None:
+    def _receive(self) -> None:
         self.joint_positions = pickle.loads(self.socket.recv())
 
     def pre_teleop(self) -> bool:

@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import os
 import pathlib
 import pickle
 import threading
@@ -93,11 +92,15 @@ class TeleopAgent:
     #       msg['pose']['orientation']['y'], msg['pose']['orientation']['z']
     #   ]
 
-    def stop(self) -> None:
-        pass
-        # self.ros.terminate()
+    # def stop(self) -> None:
+    #     pass
+    # self.ros.terminate()
 
     def step(self, timestep: dm_env.TimeStep) -> np.ndarray:
+        """
+        Steps the agent.
+        Receives a percept from the environment and returns an action.
+        """
         joint_positions = utils.TwoArmJointPositions(
             left=utils.JointPositions(timestep.observation["left_joint_pos"]),
             right=utils.JointPositions(timestep.observation["right_joint_pos"]),
@@ -114,6 +117,10 @@ class TeleopAgent:
 
 
 class MocapEffector(effector.Effector):
+    """
+    Effector used to update the state of the tracked object.
+    """
+
     def __init__(self, body: mjcf.Element) -> None:
         self._spec = None
         self._body = body
@@ -213,15 +220,7 @@ def simulate() -> None:
         logging.basicConfig(level=logging.DEBUG, force=True)
 
     if not args.sim_only:
-        left_hostname, right_hostname = (
-            os.environ.get("PANDA_LEFT"),
-            os.environ.get("PANDA_RIGHT"),
-        )
-        if left_hostname is None or right_hostname is None:
-            raise RuntimeError(
-                "Please make sure the environment variables "
-                + "PANDA_LEFT and PANDA_RIGHT are set to the respective robot hostnames."
-            )
+        left_hostname, right_hostname = utils.get_robot_hostnames()
         move_arms(
             left_hostname, right_hostname, Q_TELEOP_LEFT, Q_TELEOP_RIGHT, SPEED_FACTOR
         )
@@ -322,7 +321,7 @@ def simulate() -> None:
         else:
             run_loop.run(env, agent, [], 100)
 
-    agent.stop()
+    # agent.stop()
 
     # if not args.sim_only:
     #     move_arms(
