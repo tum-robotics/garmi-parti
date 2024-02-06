@@ -33,6 +33,7 @@ dynamic = ["version"]
 dependencies = [
   "panda-python",
   "dm-robotics-panda",
+  "pyzmq",
 ]
 
 [project.optional-dependencies]

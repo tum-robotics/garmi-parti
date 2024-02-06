@@ -11,7 +11,8 @@ import pickle
 import time
 
 import numpy as np
-from pypartigp.zmq import Publisher
+
+# from pypartigp.zmq import Publisher
 from scipy.spatial import transform
 
 from . import panda
@@ -215,11 +216,11 @@ def teleop() -> None:
         leader = CartesianLeader(left, right)
 
     cli = client.Client(leader, args.host, args.port)
-    gp_publisher = Publisher(args.gamepad_port, 30)
+    # gp_publisher = Publisher(args.gamepad_port, 30)
     gamepad_handle = gamepad.GamepadHandle(cli, "localhost", args.gamepad_port)
     logger = interface.TwoArmLogger(leader)
     client.user_interface(cli)
     cli.shutdown()
     gamepad_handle.stop()
-    gp_publisher.stop()
+    # gp_publisher.stop()
     logger.stop()
