@@ -24,6 +24,18 @@ class JointPositions:
     positions: np.ndarray
 
 
+def default_stiffness() -> np.ndarray:
+    return np.array([600, 600, 600, 600, 250, 150, 50])
+
+
+def default_damping() -> np.ndarray:
+    return np.array([50, 50, 50, 20, 20, 20, 10])
+
+
+def default_position() -> np.ndarray:
+    return np.zeros(3)
+
+
 @dataclasses.dataclass
 class TeleopParams:
     """
@@ -31,14 +43,14 @@ class TeleopParams:
     """
 
     hostname: str
-    transform: tr.Rotation = tr.Rotation.identity()
-    q_idle: JointPositions = ...
-    q_teleop: JointPositions = ...
+    transform: tr.Rotation = dataclasses.field(default_factory=tr.Rotation.identity)
+    q_idle: JointPositions | None = None
+    q_teleop: JointPositions | None = None
     lock_translation: bool = False
     lock_rotation: bool = False
     # Joint parameters
-    stiffness: np.ndarray = np.array([600, 600, 600, 600, 250, 150, 50])
-    damping: np.ndarray = np.array([50, 50, 50, 20, 20, 20, 10])
+    stiffness: np.ndarray = dataclasses.field(default_factory=default_stiffness)
+    damping: np.ndarray = dataclasses.field(default_factory=default_damping)
     # Cartesian parameters
     linear_stiffness: float = 400
     angular_stiffness: float = 20
@@ -61,12 +73,18 @@ class TeleopContainer:
     arm: panda_py.Panda
     gripper: libfranka.Gripper
     controller: controllers.TorqueController = None
-    params: TeleopParams = TeleopParams("localhost")
-    position_init: np.ndarray = np.zeros(3)
-    orientation_init: tr.Rotation = tr.Rotation.identity()
-    orientation_init_inv: tr.Rotation = tr.Rotation.identity()
-    transform: tr.Rotation = tr.Rotation.identity()
-    transform_inv: tr.Rotation = tr.Rotation.identity()
+    params: TeleopParams = dataclasses.field(
+        default_factory=lambda: TeleopParams("localhost")
+    )
+    position_init: np.ndarray = dataclasses.field(default_factory=lambda: np.zeros(3))
+    orientation_init: tr.Rotation = dataclasses.field(
+        default_factory=tr.Rotation.identity
+    )
+    orientation_init_inv: tr.Rotation = dataclasses.field(
+        default_factory=tr.Rotation.identity
+    )
+    transform: tr.Rotation = dataclasses.field(default_factory=tr.Rotation.identity)
+    transform_inv: tr.Rotation = dataclasses.field(default_factory=tr.Rotation.identity)
 
     def reinitialize(self) -> None:
         self.position_init = self.arm.get_position()
@@ -91,8 +109,8 @@ class Displacement:
     Container holding a relative pose, i.e. SE3 displacement.
     """
 
-    linear: np.ndarray = np.zeros(3)
-    angular: tr.Rotation = tr.Rotation.identity()
+    linear: np.ndarray = dataclasses.field(default_factory=default_position)
+    angular: tr.Rotation = dataclasses.field(default_factory=tr.Rotation.identity)
 
 
 @dataclasses.dataclass
@@ -120,8 +138,8 @@ class Pose:
     Pose container.
     """
 
-    position: np.ndarray = np.zeros(3)
-    orientation: tr.Rotation = tr.Rotation.identity()
+    position: np.ndarray = dataclasses.field(default_factory=default_position)
+    orientation: tr.Rotation = dataclasses.field(default_factory=tr.Rotation.identity)
 
 
 T = typing.TypeVar("T")
@@ -159,7 +177,7 @@ class TwoArmWrench(TwoArmContainer[Wrench]):
 
 
 @dataclasses.dataclass
-class TwoArmJointPositions(TwoArmContainer[JointPositions]):
+class TwoArmJointPositions(TwoArmContainer[typing.Optional[JointPositions]]):
     """
     Two-arm joint positions container.
     """
@@ -187,10 +205,9 @@ class Timer:
     def __init__(self, timestep: float, timeout: float, buffer_size: int = 100):
         self.timestep = timestep
         self.timeout = timeout
-        self.last_tick_time: float = None
-        self.last_sleep_time = None
-        self.buffer: typing.Deque[float] = collections.deque(maxlen=buffer_size)
-        self.last_sleep_time = 0
+        self.last_tick_time: float | None = None
+        self.buffer: collections.deque[float] = collections.deque(maxlen=buffer_size)
+        self.last_sleep_time: float = 0
 
     def tick(self) -> None:
         current_time = time.perf_counter()
@@ -199,7 +216,7 @@ class Timer:
             time_delta = current_time - self.last_tick_time
             self.buffer.append(time_delta - self.last_sleep_time)
             average_time_delta = (
-                sum(self.buffer) / len(self.buffer) if self.buffer else 0
+                sum(self.buffer) / len(self.buffer) if self.buffer else 0.0
             )
             sleep_time = max(0, self.timestep - average_time_delta)
             self.last_sleep_time = sleep_time

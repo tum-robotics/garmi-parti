@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import pathlib
 import pickle
 import threading
 
@@ -33,9 +34,7 @@ from .teleoperation import utils
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger("parti_haptic_sim")
 
-XML_PATH = os.path.join(os.path.dirname(__file__), "assets", "parti_mmt.xml")
-PEG_XML_PATH = os.path.join(os.path.dirname(__file__), "assets", "peg", "peg.xml")
-HOLE_XML_PATH = os.path.join(os.path.dirname(__file__), "assets", "hole", "hole.xml")
+XML_PATH = pathlib.Path(pathlib.Path(__file__).parent) / "assets" / "parti_mmt.xml"
 
 Q_IDLE_LEFT = utils.JointPositions(
     [0, -np.pi / 2, 0, -2 * np.pi / 4, 0, np.pi / 2, np.pi / 4]
@@ -98,20 +97,20 @@ class TeleopAgent:
         pass
         # self.ros.terminate()
 
-    def step(self, timestep: dm_env.TimeStep):
+    def step(self, timestep: dm_env.TimeStep) -> np.ndarray:
         joint_positions = utils.TwoArmJointPositions(
             left=utils.JointPositions(timestep.observation["left_joint_pos"]),
             right=utils.JointPositions(timestep.observation["right_joint_pos"]),
         )
         self.socket.send(pickle.dumps(joint_positions))
         return np.zeros(16)
-        action = np.zeros(shape=self._spec.shape, dtype=self._spec.dtype)
-        action[:14] = self._action
-        pos = [0, 0, 0]
-        quat = [1, 0, 0, 0]
-        action[-7:] = np.r_[self.pos, self.quat]
-        # print(self._arena.mjcf_model.find('body', 'mmt'))
-        return action
+        # action = np.zeros(shape=self._spec.shape, dtype=self._spec.dtype)
+        # action[:14] = self._action
+        # pos = [0, 0, 0]
+        # quat = [1, 0, 0, 0]
+        # action[-7:] = np.r_[self.pos, self.quat]
+        # # print(self._arena.mjcf_model.find('body', 'mmt'))
+        # return action
 
 
 class MocapEffector(effector.Effector):
@@ -121,8 +120,8 @@ class MocapEffector(effector.Effector):
         self._pos = [0, -0.205, 0.24]
         self._quat = moma_tr.euler_to_quat([0, np.pi / 2, np.pi / 2], "XYZ")
 
-    def close(self):
-        return super().close()
+    def close(self) -> None:
+        pass
 
     def initialize_episode(
         self, physics: mjcf.Physics, random_state: np.random.RandomState
@@ -130,6 +129,7 @@ class MocapEffector(effector.Effector):
         pass
 
     def action_spec(self, physics: mjcf.Physics) -> specs.BoundedArray:
+        del physics
         if self._spec is None:
             # self._spec = specs.DiscreteArray(2, name=f'{self.prefix}_grasp')
             self._spec = specs.BoundedArray(
@@ -153,7 +153,7 @@ class MocapEffector(effector.Effector):
         physics_body.mocap_quat[:] = moma_tr.quat_mul(self._quat, command[3:])
 
 
-def make_gripper(name):
+def make_gripper(name: str) -> params.GripperParams:
     """Creates a Panda gripper.
 
     We create the Panda gripper manually here because the connected
@@ -167,11 +167,16 @@ def make_gripper(name):
     gripper_effector = gripper.PandaHandEffector(
         params.RobotParams(name=name), gripper_model, gripper_sensor
     )
-    gripper_params = params.GripperParams(gripper_model, gripper_effector)
-    return gripper_params
+    return params.GripperParams(gripper_model, gripper_effector)
 
 
-def move_arms(left_hostname, right_hostname, q_left, q_right, speed_factor):
+def move_arms(
+    left_hostname: str,
+    right_hostname: str,
+    q_left: np.ndarray,
+    q_right: np.ndarray,
+    speed_factor: float,
+) -> None:
     """Move robot arms.
 
     Utility function that moves two robot arms simultaneously
@@ -319,7 +324,7 @@ def simulate() -> None:
 
     agent.stop()
 
-    if not args.sim_only:
-        move_arms(
-            left_hostname, right_hostname, Q_IDLE_LEFT, Q_IDLE_RIGHT, SPEED_FACTOR
-        )
+    # if not args.sim_only:
+    #     move_arms(
+    #         left_hostname, right_hostname, Q_IDLE_LEFT, Q_IDLE_RIGHT, SPEED_FACTOR
+    #     )

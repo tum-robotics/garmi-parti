@@ -9,7 +9,6 @@ import logging
 import os
 import pickle
 import time
-import typing
 
 import numpy as np
 from pypartigp.zmq import Publisher
@@ -42,7 +41,7 @@ DAMPING = [80, 0, 0, 0, 0, 0, 0]
 class Tickable:
     def init_tickable(self, window_size: int = 1000, interval: int = 2000) -> None:
         self._t_last = time.perf_counter()
-        self._t_window: typing.Deque[float] = collections.deque(maxlen=window_size)
+        self._t_window: collections.deque[float] = collections.deque(maxlen=window_size)
         self.num_ticks = 0
         self.interval = interval
 
@@ -133,7 +132,7 @@ class JointLeader(panda.JointLeader, interface.TwoArmPandaInterface, Tickable):
         window_size: int = 1000,
         interval: int = 2000,
     ) -> None:
-        self.init_tickable()
+        self.init_tickable(window_size, interval)
 
         q_idle = utils.TwoArmJointPositions(left=Q_IDLE_LEFT, right=Q_IDLE_RIGHT)
         q_teleop = utils.TwoArmJointPositions(left=Q_TELEOP_LEFT, right=Q_TELEOP_RIGHT)

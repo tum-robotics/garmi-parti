@@ -15,7 +15,7 @@ import abc
 import csv
 import datetime
 import logging
-import os
+import pathlib
 import threading
 import time
 
@@ -136,8 +136,8 @@ class PandaInterface(Interface, abc.ABC):
         self.q_teleop = params.q_teleop
         self.move_arm(self.q_idle)
 
-    def move_arm(self, joint_positions: utils.JointPositions) -> None:
-        if joint_positions is not ...:
+    def move_arm(self, joint_positions: utils.JointPositions | None) -> None:
+        if joint_positions is not None:
             self.panda.arm.move_to_joint_position(
                 joint_positions.positions, self.panda.params.speed_factor
             )
@@ -174,7 +174,7 @@ class PandaInterface(Interface, abc.ABC):
         self.move_arm(self.q_idle)
         return True
 
-    def _pre_teleop(self, container: utils.TeleopContainer):
+    def _pre_teleop(self, container: utils.TeleopContainer) -> None:
         container.arm.set_default_behavior()
 
         # set collision behavior
@@ -189,7 +189,7 @@ class PandaInterface(Interface, abc.ABC):
         container.reinitialize()
         container.arm.start_controller(container.controller)
 
-    def _post_teleop(self, container: utils.TeleopContainer):
+    def _post_teleop(self, container: utils.TeleopContainer) -> None:
         container.arm.stop_controller()
 
     def get_sync_command(self) -> bytes:
@@ -233,11 +233,13 @@ class TwoArmPandaInterface(PandaInterface, abc.ABC):
             transform=right.transform,
             transform_inv=right.transform.inv(),
         )
-        self.q_idle = utils.TwoArmJointPositions(left=left.q_idle, right=right.q_idle)
-        self.q_teleop = utils.TwoArmJointPositions(
+        self.two_arm_q_idle = utils.TwoArmJointPositions(
+            left=left.q_idle, right=right.q_idle
+        )
+        self.two_arm_q_teleop = utils.TwoArmJointPositions(
             left=left.q_teleop, right=right.q_teleop
         )
-        self.move_arms(self.q_idle)
+        self.move_arms(self.two_arm_q_idle)
 
     def open(self, end_effector: str = "") -> None:
         gripper = getattr(self, end_effector).gripper
@@ -254,7 +256,7 @@ class TwoArmPandaInterface(PandaInterface, abc.ABC):
     def move_arms(self, joint_positions: utils.TwoArmJointPositions) -> None:
         threads = []
 
-        if joint_positions.left is not ...:
+        if joint_positions.left is not None:
             t_left = threading.Thread(
                 target=self.left.arm.move_to_joint_position,
                 args=(joint_positions.left.positions, self.left.params.speed_factor),
@@ -262,7 +264,7 @@ class TwoArmPandaInterface(PandaInterface, abc.ABC):
             threads.append(t_left)
             t_left.start()
 
-        if joint_positions.right is not ...:
+        if joint_positions.right is not None:
             t_right = threading.Thread(
                 target=self.right.arm.move_to_joint_position,
                 args=(joint_positions.right.positions, self.right.params.speed_factor),
@@ -274,7 +276,7 @@ class TwoArmPandaInterface(PandaInterface, abc.ABC):
             thread.join()
 
     def pre_teleop(self) -> bool:
-        self.move_arms(self.q_teleop)
+        self.move_arms(self.two_arm_q_teleop)
         self._pre_teleop(self.left)
         self._pre_teleop(self.right)
         return True
@@ -286,7 +288,7 @@ class TwoArmPandaInterface(PandaInterface, abc.ABC):
     def post_teleop(self) -> bool:
         self._post_teleop(self.left)
         self._post_teleop(self.right)
-        self.move_arms(self.q_idle)
+        self.move_arms(self.two_arm_q_idle)
         return True
 
 
@@ -307,16 +309,15 @@ class TwoArmLogger:
         self._thread.start()
 
     def ensure_directory_exists(self) -> None:
-        if not os.path.exists(self.log_directory):
-            os.makedirs(self.log_directory)
+        if not pathlib.Path(self.log_directory).exists():
+            pathlib.Path(self.log_directory).mkdir(parents=True)
 
-    def create_log_file(self) -> str:
+    def create_log_file(self) -> pathlib.Path:
         current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        log_filename = os.path.join(self.log_directory, f"log_{current_datetime}.csv")
-        return log_filename
+        return pathlib.Path(self.log_directory) / f"log_{current_datetime}.csv"
 
     def _run(self) -> None:
-        with open(self.log_file, mode="a", newline="") as file:
+        with self.log_file.open(mode="a", newline="") as file:
             writer = csv.writer(file)
             while self._running:
                 time.sleep(1 / self._frequency)

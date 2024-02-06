@@ -75,8 +75,8 @@ class CartesianFollower(panda.CartesianFollower, interface.TwoArmPandaInterface)
 
 
 class JointFollower(panda.JointFollower, interface.TwoArmPandaInterface):
-    stiffness = [600, 600, 600, 600, 250, 150, 50]
-    damping = [50, 50, 50, 20, 20, 20, 10]
+    stiffness: typing.ClassVar[np.ndarray] = [600, 600, 600, 600, 250, 150, 50]
+    damping: typing.ClassVar[np.ndarray] = [50, 50, 50, 20, 20, 20, 10]
     filter_coeff = 1.0
 
     def get_command(self) -> bytes:
@@ -88,8 +88,10 @@ class JointFollower(panda.JointFollower, interface.TwoArmPandaInterface):
 
     def set_command(self, command: bytes) -> None:
         joint_positions: utils.TwoArmJointPositions = pickle.loads(command)
-        self._set_command(joint_positions.left, self.left)
-        self._set_command(joint_positions.right, self.right)
+        if joint_positions.left is not None:
+            self._set_command(joint_positions.left, self.left)
+        if joint_positions.right is not None:
+            self._set_command(joint_positions.right, self.right)
 
     def pause(self) -> None:
         self.left.arm.stop_controller()

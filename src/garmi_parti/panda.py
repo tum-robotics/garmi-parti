@@ -12,8 +12,6 @@ import numpy as np
 from panda_py import controllers
 from scipy.spatial import transform as tr
 
-from garmi_parti.teleoperation import utils
-
 from .teleoperation import client, interface, server, utils
 
 logging.basicConfig(level=logging.INFO)

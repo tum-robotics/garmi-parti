@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import socketserver
 import threading
@@ -16,6 +17,7 @@ UDP_TIMESTEP = 0
 
 class _UDPHandler(socketserver.BaseRequestHandler):
     def handle(self) -> None:
+        self.server: _UDPServer
         self.server.t.tick()
         data, sock = self.request
         self.server.teleoperator.set_command(data)
@@ -23,7 +25,9 @@ class _UDPHandler(socketserver.BaseRequestHandler):
 
 
 class _UDPServer(socketserver.UDPServer):
-    def __init__(self, server_address, teleoperator: interface.Interface) -> None:
+    def __init__(
+        self, server_address: tuple[str, int], teleoperator: interface.Interface
+    ) -> None:
         self.teleoperator = teleoperator
         self.t = utils.Timer(UDP_TIMESTEP, UDP_TIMEOUT)
         self.t.tick()
@@ -38,8 +42,8 @@ class Server:
         self.teleoperator = teleoperator
         self.port = port
         self.udp_timeout = udp_timeout
-        self.udp_thread: threading.Thread = None
-        self.udp: _UDPServer = None
+        self.udp_thread: threading.Thread | None = None
+        self.udp: _UDPServer | None = None
 
         self.rpc = server.SimpleXMLRPCServer(
             ("0.0.0.0", port), allow_none=True, use_builtin_types=True
@@ -74,7 +78,7 @@ class Server:
         _logger.info("New teleoperation connection")
         return bool(self.teleoperator.pre_teleop())
 
-    def synchronize(self, command: bytes) -> bool:
+    def synchronize(self, command: bytes = b"") -> bool:
         _logger.info("Synchronizing teleoperators")
         self.teleoperator.set_sync_command(command)
         return True
@@ -90,8 +94,8 @@ class Server:
         if self.udp is not None:
             _logger.info("Stopping UDP")
             self.udp.shutdown()
-            self.udp_thread.join()
-            self.udp = None
+            if self.udp_thread is not None:
+                self.udp_thread.join()
             self.teleoperator.post_teleop()
 
     def pause(self) -> None:
@@ -123,7 +127,5 @@ def user_interface(srv: Server) -> None:
     Waits for the user to press enter or ctrl+c.
     """
     del srv
-    try:
+    with contextlib.suppress(KeyboardInterrupt):
         input("Press enter to quit\n")
-    except KeyboardInterrupt:
-        pass

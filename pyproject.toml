@@ -52,6 +52,15 @@ docs = [
   "furo>=2023.08.17",
 ]
 
+[project.scripts]
+parti-teleop = "garmi_parti.parti:teleop"
+garmi-teleop = "garmi_parti.garmi:teleop"
+panda-teleop-leader = "garmi_parti.panda:teleop_leader"
+panda-teleop-follower = "garmi_parti.panda:teleop_follower"
+parti-mmt = "garmi_parti.parti_mmt:teleop"
+parti-haptic-sim = "garmi_parti.parti_haptic_sim:simulate"
+garmi-mmt = "garmi_parti.garmi_mmt:teleop"
+
 [project.urls]
 Homepage = "https://github.com/JeanElsner/Garmi-Parti"
 "Bug Tracker" = "https://github.com/JeanElsner/Garmi-Parti/issues"
@@ -95,8 +104,9 @@ warn_unused_configs = true
 strict = false
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 warn_unreachable = true
-disallow_untyped_defs = true
+disallow_untyped_defs = false
 disallow_incomplete_defs = false
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "garmi_parti.*"

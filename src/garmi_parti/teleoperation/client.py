@@ -3,6 +3,7 @@ Teleoperation module including networking code for the client side.
 """
 from __future__ import annotations
 
+import contextlib
 import logging
 import socket
 import threading
@@ -53,7 +54,8 @@ class Client:
 
     def unpause(self) -> None:
         if not self.rpc.synchronize(self.teleoperator.get_sync_command()):
-            raise RuntimeError("Synchronization failed")
+            msg = "Synchronization failed"
+            raise RuntimeError(msg)
         self.rpc.unpause()
         self.teleoperator.unpause()
 
@@ -65,10 +67,8 @@ class Client:
 
     def shutdown(self) -> None:
         _logger.info("Shutting down teleoperation client")
-        try:
+        with contextlib.suppress(TimeoutError):
             self.rpc.stop()
-        except TimeoutError:
-            pass
         self.running_udp = False
         self.udp_thread.join()
         self.teleoperator.post_teleop()
@@ -77,10 +77,12 @@ class Client:
         _logger.info("Connecting to %s", self.host)
 
         if not self.rpc.connect():
-            raise RuntimeError("Connection failed")
+            msg = "Connection failed"
+            raise RuntimeError(msg)
         self.teleoperator.pre_teleop()
         if not self.rpc.synchronize(self.teleoperator.get_sync_command()):
-            raise RuntimeError("Synchronization failed")
+            msg = "Synchronization failed"
+            raise RuntimeError(msg)
 
         _logger.info("Ready for teleoperation.")
         self.rpc.start()
@@ -100,10 +102,8 @@ def user_interface(cli: Client) -> None:
     Waits for the user to type q and press enter to quit.
     The user can also pause teleop by pressing enter.
     """
-    cb = lambda x: cli.pause() if x else cli.unpause()
     try:
-        flg = False
-        print("Press enter to quit. Type r and press enter to reset.\n")
+        print("Press enter to quit. Type r and press enter to reset.\n")  # noqa:T201
         while True:
             inp = input()
             if inp == "r":
