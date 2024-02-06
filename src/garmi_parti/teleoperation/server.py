@@ -1,0 +1,129 @@
+from __future__ import annotations
+
+import logging
+import socketserver
+import threading
+import time
+from xmlrpc import server
+
+from . import interface, utils
+
+_logger = logging.getLogger("teleoperation.server")
+
+UDP_TIMEOUT = 2.0
+UDP_TIMESTEP = 0
+
+
+class _UDPHandler(socketserver.BaseRequestHandler):
+    def handle(self) -> None:
+        self.server.t.tick()
+        data, sock = self.request
+        self.server.teleoperator.set_command(data)
+        sock.sendto(self.server.teleoperator.get_command(), self.client_address)
+
+
+class _UDPServer(socketserver.UDPServer):
+    def __init__(self, server_address, teleoperator: interface.Interface) -> None:
+        self.teleoperator = teleoperator
+        self.t = utils.Timer(UDP_TIMESTEP, UDP_TIMEOUT)
+        self.t.tick()
+        super().__init__(server_address, _UDPHandler, True)
+
+
+class Server:
+    def __init__(
+        self, teleoperator: interface.Interface, port: int, udp_timeout: float = 1.0
+    ) -> None:
+        _logger.info("Starting teleoperation server")
+        self.teleoperator = teleoperator
+        self.port = port
+        self.udp_timeout = udp_timeout
+        self.udp_thread: threading.Thread = None
+        self.udp: _UDPServer = None
+
+        self.rpc = server.SimpleXMLRPCServer(
+            ("0.0.0.0", port), allow_none=True, use_builtin_types=True
+        )
+        self.rpc.register_function(self.connect, "connect")
+        self.rpc.register_function(self.synchronize, "synchronize")
+        self.rpc.register_function(self.start)
+        self.rpc.register_function(self.pause)
+        self.rpc.register_function(self.unpause)
+        self.rpc.register_function(self.open)
+        self.rpc.register_function(self.close)
+        self.rpc.register_function(self.stop)
+
+        self.rpc_thread = threading.Thread(target=self.rpc.serve_forever)
+        self.rpc_thread.start()
+        self.running = True
+        self.check_timeout_thread = threading.Thread(target=self.check_timeout)
+        self.check_timeout_thread.start()
+
+    def check_timeout(self) -> None:
+        while self.running:
+            if self.udp is not None:
+                try:
+                    self.udp.t.check_timeout()
+                except utils.TeleopTimeoutError:
+                    _logger.error("Client timed out.")
+                    self.stop()
+            time.sleep(1)
+
+    def connect(self) -> bool:
+        self.stop()
+        _logger.info("New teleoperation connection")
+        return bool(self.teleoperator.pre_teleop())
+
+    def synchronize(self, command: bytes) -> bool:
+        _logger.info("Synchronizing teleoperators")
+        self.teleoperator.set_sync_command(command)
+        return True
+
+    def start(self) -> None:
+        self.teleoperator.start_teleop()
+        self.udp = _UDPServer(("0.0.0.0", self.port), self.teleoperator)
+        _logger.info("Listening for UDP data on %s", ("0.0.0.0", self.port))
+        self.udp_thread = threading.Thread(target=self.udp.serve_forever)
+        self.udp_thread.start()
+
+    def stop(self) -> None:
+        if self.udp is not None:
+            _logger.info("Stopping UDP")
+            self.udp.shutdown()
+            self.udp_thread.join()
+            self.udp = None
+            self.teleoperator.post_teleop()
+
+    def pause(self) -> None:
+        self.teleoperator.pause()
+
+    def unpause(self) -> None:
+        self.teleoperator.unpause()
+
+    def open(self, end_effector: str = "") -> None:
+        self.teleoperator.open(end_effector)
+
+    def close(self, end_effector: str = "") -> None:
+        self.teleoperator.close(end_effector)
+
+    def shutdown(self) -> None:
+        """
+        Shutdown the server and end any running teleoperation.
+        """
+        self.stop()
+        _logger.info("Shutting down teleoperation server")
+        self.rpc.shutdown()
+        self.rpc_thread.join()
+        self.running = False
+        self.check_timeout_thread.join()
+
+
+def user_interface(srv: Server) -> None:
+    """
+    Waits for the user to press enter or ctrl+c.
+    """
+    del srv
+    try:
+        input("Press enter to quit\n")
+    except KeyboardInterrupt:
+        pass

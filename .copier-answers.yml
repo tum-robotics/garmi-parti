@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: 2024.01.24
+_src_path: gh:scientific-python/cookie
+backend: hatch
+email: jean.elsner@tum.de
+full_name: Jean Elsner
+license: Apache
+org: JeanElsner
+project_name: Garmi-Parti
+project_short_description: Teleoperation between Garmi and Parti
+url: https://github.com/JeanElsner/Garmi-Parti
+vcs: true
