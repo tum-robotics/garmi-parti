@@ -1,6 +1,7 @@
 """
 Demos running on the PARTI system.
 """
+
 from __future__ import annotations
 
 import argparse

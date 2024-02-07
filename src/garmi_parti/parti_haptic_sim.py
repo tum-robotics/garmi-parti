@@ -7,6 +7,7 @@ interact with the virtual environment.
 Alternatively, a teleoperation connection with a two-arm follower
 can be established for a model-mediated teleoperation (MMT) scenario.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -92,9 +93,12 @@ class TeleopAgent:
     #       msg['pose']['orientation']['y'], msg['pose']['orientation']['z']
     #   ]
 
-    # def stop(self) -> None:
-    #     pass
-    # self.ros.terminate()
+    def shutdown(self) -> None:
+        """
+        Shutdown, closing any open connections.
+        """
+        self.socket.close()
+        self.context.term()
 
     def step(self, timestep: dm_env.TimeStep) -> np.ndarray:
         """
@@ -321,7 +325,7 @@ def simulate() -> None:
         else:
             run_loop.run(env, agent, [], 100)
 
-    # agent.stop()
+    agent.shutdown()
 
     # if not args.sim_only:
     #     move_arms(

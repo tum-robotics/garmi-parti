@@ -1,6 +1,7 @@
 """
 Teleoperation module including networking code for the client side.
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -53,6 +54,7 @@ class Client:
             except utils.TeleopTimeoutError:
                 _logger.error("Server timed out.")
                 break
+        udp.close()
 
     def pause(self) -> None:
         """
@@ -90,7 +92,9 @@ class Client:
         Shutdown the teleoperation network client.
         """
         _logger.info("Shutting down teleoperation client")
-        with contextlib.suppress(TimeoutError):
+        with contextlib.suppress(TimeoutError), contextlib.suppress(
+            ConnectionRefusedError
+        ):
             self.rpc.stop()
         self.running_udp = False
         self.udp_thread.join()
@@ -125,8 +129,8 @@ class Client:
 
 def user_interface(cli: Client) -> None:
     """
-    Waits for the user to type q and press enter to quit.
-    The user can also pause teleop by pressing enter.
+    Waits for the user to press enter to quit.
+    The user can also reset the teleoperator by entering r and pressing enter.
     """
     try:
         print("Press enter to quit. Type r and press enter to reset.\n")  # noqa:T201

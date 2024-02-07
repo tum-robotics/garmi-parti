@@ -55,12 +55,12 @@ class Server:
         )
         self.rpc.register_function(self._connect, "connect")
         self.rpc.register_function(self._synchronize, "synchronize")
-        self.rpc.register_function(self._start)
+        self.rpc.register_function(self._start, "start")
         self.rpc.register_function(self.pause)
         self.rpc.register_function(self.unpause)
         self.rpc.register_function(self.open)
         self.rpc.register_function(self.close)
-        self.rpc.register_function(self._stop)
+        self.rpc.register_function(self._stop, "stop")
 
         self.rpc_thread = threading.Thread(target=self.rpc.serve_forever)
         self.rpc_thread.start()
@@ -99,6 +99,8 @@ class Server:
         if self.udp is not None:
             _logger.info("Stopping UDP")
             self.udp.shutdown()
+            self.udp.socket.close()
+            self.udp = None
             if self.udp_thread is not None:
                 self.udp_thread.join()
             self.teleoperator.post_teleop()
@@ -134,6 +136,7 @@ class Server:
         self._stop()
         _logger.info("Shutting down teleoperation server")
         self.rpc.shutdown()
+        self.rpc.socket.close()
         self.rpc_thread.join()
         self.running = False
         self.check_timeout_thread.join()

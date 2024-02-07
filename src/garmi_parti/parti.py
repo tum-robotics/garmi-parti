@@ -1,6 +1,7 @@
 """
 Demos running on the PARTI system.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -67,6 +68,7 @@ class CartesianLeader(panda.CartesianLeader, interface.TwoArmPandaInterface, Tic
     Use PARTI or a similar system as a cartesian teleoperation leader device.
     """
 
+    # pylint: disable=super-init-not-called
     def __init__(
         self,
         left_hostname: str,
@@ -74,7 +76,8 @@ class CartesianLeader(panda.CartesianLeader, interface.TwoArmPandaInterface, Tic
         window_size: int = 1000,
         interval: int = 2000,
     ) -> None:
-        super(Tickable, self).__init__(window_size, interval)  # type: ignore[call-arg]
+        Tickable.__init__(self, window_size, interval)  # type: ignore[call-arg]
+
         self.paused = False
 
         q_idle = utils.TwoArmJointPositions(left=Q_IDLE_LEFT, right=Q_IDLE_RIGHT)
@@ -129,6 +132,7 @@ class JointLeader(panda.JointLeader, interface.TwoArmPandaInterface, Tickable):
     Use PARTI or a similar system as a joint-space teleoperation leader device.
     """
 
+    # pylint: disable=super-init-not-called
     def __init__(
         self,
         left_hostname: str,
@@ -136,7 +140,7 @@ class JointLeader(panda.JointLeader, interface.TwoArmPandaInterface, Tickable):
         window_size: int = 1000,
         interval: int = 2000,
     ) -> None:
-        super(Tickable, self).__init__(window_size, interval)  # type: ignore[call-arg]
+        Tickable.__init__(self, window_size, interval)  # type: ignore[call-arg]
 
         q_idle = utils.TwoArmJointPositions(left=Q_IDLE_LEFT, right=Q_IDLE_RIGHT)
         q_teleop = utils.TwoArmJointPositions(left=Q_TELEOP_LEFT, right=Q_TELEOP_RIGHT)
