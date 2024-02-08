@@ -40,7 +40,6 @@ dependencies = [
 test = [
   "pytest >=6",
   "pytest-cov >=3",
-  "pyopengl == 3.1.6",
 ]
 dev = [
   "pytest >=6",
