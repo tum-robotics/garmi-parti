@@ -27,7 +27,7 @@ from dm_robotics.moma.tasks import run_loop
 from dm_robotics.panda import arm_constants, environment, gripper
 from dm_robotics.panda import parameters as params
 from dm_robotics.panda import utils as dmr_panda_utils
-from dm_robotics.transformations import transformations as moma_tr
+from dm_robotics.transformations import transformations as tr
 
 from .teleoperation import utils
 
@@ -36,24 +36,9 @@ _logger = logging.getLogger("parti_haptic_sim")
 
 XML_PATH = pathlib.Path(pathlib.Path(__file__).parent) / "assets" / "parti_mmt.xml"
 
-Q_IDLE_LEFT = utils.JointPositions(
-    [0, -np.pi / 2, 0, -2 * np.pi / 4, 0, np.pi / 2, np.pi / 4]
-)
-Q_IDLE_RIGHT = utils.JointPositions(
-    [0, -np.pi / 2, 0, -2 * np.pi / 4, 0, np.pi / 2, np.pi / 4]
-)
 Q_TELEOP_LEFT = utils.JointPositions([0.02, -1.18, -0.06, -1.47, 0.04, 1.92, 0.75])
-Q_TELEOP_RIGHT = utils.JointPositions(
-    [
-        0.1261991807682472,
-        -1.3334758399021756,
-        -0.12895294076006777,
-        -2.467273292813602,
-        -0.26848237937026553,
-        2.6813366335795985,
-        0.8649797521854519,
-    ]
-)
+Q_TELEOP_RIGHT = utils.JointPositions([-0.04, -1.16, 0.08, -1.57, 0.00, 2.05, 0.84])
+
 SPEED_FACTOR = 0.2
 
 
@@ -74,24 +59,6 @@ class TeleopAgent:
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PUB)
         self.socket.bind("ipc:///tmp/parti-haptic-sim")
-        # self.ros = roslibpy.Ros('10.157.174.246', 9090)
-        # self.ros.run()
-        # roslibpy.Topic(self.ros, '/icg_pose_topic',
-        #                'geometry_msgs/PoseStamped').subscribe(self.listen)
-        # roslibpy.Topic(self.ros, '/icg_tracker_2/pose',
-        #                'geometry_msgs/PoseStamped').subscribe(self.listen)
-        self.pos = [0, 0, 0]
-        self.quat = [1, 0, 0, 0]
-
-    # def listen(self, msg):
-    #   self.pos = [
-    #       msg['pose']['position']['x'], msg['pose']['position']['y'],
-    #       msg['pose']['position']['z']
-    #   ]
-    #   self.quat = [
-    #       msg['pose']['orientation']['w'], msg['pose']['orientation']['x'],
-    #       msg['pose']['orientation']['y'], msg['pose']['orientation']['z']
-    #   ]
 
     def shutdown(self) -> None:
         """
@@ -110,26 +77,18 @@ class TeleopAgent:
             right=utils.JointPositions(timestep.observation["right_joint_pos"]),
         )
         self.socket.send(pickle.dumps(joint_positions))
-        return np.zeros(16)
-        # action = np.zeros(shape=self._spec.shape, dtype=self._spec.dtype)
-        # action[:14] = self._action
-        # pos = [0, 0, 0]
-        # quat = [1, 0, 0, 0]
-        # action[-7:] = np.r_[self.pos, self.quat]
-        # # print(self._arena.mjcf_model.find('body', 'mmt'))
-        # return action
+        return np.zeros(23)
 
 
-class MocapEffector(effector.Effector):
+class SceneEffector(effector.Effector):
     """
-    Effector used to update the state of the tracked object.
+    Effector used to update the state of tracked objects.
     """
 
-    def __init__(self, body: mjcf.Element) -> None:
+    def __init__(self, plane: mjcf.Element, obj: list[mjcf.Element]) -> None:
+        self._plane = plane
+        self._object = obj
         self._spec = None
-        self._body = body
-        self._pos = [0, -0.205, 0.24]
-        self._quat = moma_tr.euler_to_quat([0, np.pi / 2, np.pi / 2], "XYZ")
 
     def close(self) -> None:
         pass
@@ -142,7 +101,6 @@ class MocapEffector(effector.Effector):
     def action_spec(self, physics: mjcf.Physics) -> specs.BoundedArray:
         del physics
         if self._spec is None:
-            # self._spec = specs.DiscreteArray(2, name=f'{self.prefix}_grasp')
             self._spec = specs.BoundedArray(
                 (7,),
                 np.float32,
@@ -154,14 +112,28 @@ class MocapEffector(effector.Effector):
 
     @property
     def prefix(self) -> str:
-        return "mocap"
+        return "scene"
 
     def set_control(self, physics: mjcf.Physics, command: np.ndarray) -> None:
-        physics_body = physics.bind(self._body)
-        physics_body.mocap_pos[:] = self._pos + moma_tr.quat_rotate(
-            self._quat, command[:3]
+        del command
+        update = True
+        for contact in physics.data.contact:
+            geom1_name = physics.model.id2name(contact.geom1, "geom")
+            geom2_name = physics.model.id2name(contact.geom2, "geom")
+            if (
+                (geom1_name == "object" or geom2_name == "object")
+                and geom1_name != "plane"
+                and geom2_name != "plane"
+            ):
+                update = False
+                break
+        # only update if object is not in contact with element other than plane
+        if update:
+            physics.bind(self._object).qpos[:] = [0, 0, 0]
+        # update plane as you see fit
+        physics.bind(self._plane).mocap_quat[:] = tr.euler_to_quat(
+            [np.sin(physics.time()) * 0.1, 0, 0]
         )
-        physics_body.mocap_quat[:] = moma_tr.quat_mul(self._quat, command[3:])
 
 
 def make_gripper(name: str) -> params.GripperParams:
@@ -223,32 +195,22 @@ def simulate() -> None:
     if args.debug:
         logging.basicConfig(level=logging.DEBUG, force=True)
 
-    if not args.sim_only:
-        left_hostname, right_hostname = utils.get_robot_hostnames()
-        move_arms(
-            left_hostname, right_hostname, Q_TELEOP_LEFT, Q_TELEOP_RIGHT, SPEED_FACTOR
-        )
-    else:
+    if args.sim_only:
         left_hostname = None
         right_hostname = None
 
-    left_pos = [0, 0.205, 0.24]
-    left_eul = moma_tr.quat_to_euler(
-        moma_tr.euler_to_quat([-np.pi / 2, np.pi / 2, 0], "XYZ"), "XYZ"
-    )
-    right_pos = [0, -0.205, 0.24]
-    right_eul = moma_tr.quat_to_euler(
-        moma_tr.euler_to_quat([np.pi / 2, np.pi / 2, 0], "XYZ"), "XYZ"
-    )
-
     arena = composer.Arena(xml_path=XML_PATH)
+    left_frame = arena.mjcf_model.find("site", "left")
+    right_frame = arena.mjcf_model.find("site", "right")
+    plane = arena.mjcf_model.find("body", "plane")
+    obj = [arena.mjcf_model.find("joint", jn) for jn in ["x", "y", "theta"]]
 
     left = params.RobotParams(
         robot_ip=left_hostname,
         name="left",
         has_hand=False,
-        joint_positions=Q_IDLE_LEFT.positions,
-        pose=np.concatenate([left_pos, left_eul]),
+        joint_positions=Q_TELEOP_LEFT.positions,
+        attach_site=left_frame,
         gripper=make_gripper("right"),
         actuation=arm_constants.Actuation.HAPTIC,
     )
@@ -256,68 +218,22 @@ def simulate() -> None:
         robot_ip=right_hostname,
         name="right",
         has_hand=False,
-        joint_positions=Q_IDLE_RIGHT.positions,
-        pose=np.concatenate([right_pos, right_eul]),
+        joint_positions=Q_TELEOP_RIGHT.positions,
+        attach_site=right_frame,
         gripper=make_gripper("left"),
         actuation=arm_constants.Actuation.HAPTIC,
     )
     robot_params = [left, right]
 
-    # def add_hole(arena: composer.Arena) -> None:
-    #   hole = mjcf.from_path(HOLE_XML_PATH)
-    #   hole.find('body', 'hole').pos = [.9, .2, .2]
-    #   hole.find('body', 'hole').euler = [0, 0, 0]
-    #   arena.mjcf_model.attach(hole)
-
-    # def add_peg(robots: typing.Sequence[robot.Robot]) -> None:
-
-    #   def hand():
-    #     elem = mjcf.from_path(gripper_constants.XML_PATH)
-    #     return elem
-
-    #   robots[0].gripper.tool_center_point.attach(hand())
-    #   robots[1].gripper.tool_center_point.attach(hand())
-    #   peg = mjcf.from_path(PEG_XML_PATH)
-    #   peg.find('body', 'peg').pos = [0, 0, 0.165]
-    #   peg.find('body', 'peg').euler = [180, 0, 0]
-    #   robots[0].gripper.tool_center_point.attach(peg)
-
-    # def adjust_gripper(
-    #     robots: typing.Sequence[robot.Robot],
-    #     arena: composer.Arena) -> entity_initializer.base_initializer.Initializer:
-    #   del robots
-
-    #   class AdjustGripper(entity_initializer.base_initializer.Initializer):
-
-    #     def __call__(self, physics: mjcf.Physics,
-    #                  random_state: np.random.RandomState) -> bool:
-    #       physics.bind(
-    #           arena.mjcf_model.find(
-    #               'actuator',
-    #               'left/left_hand/panda_hand/panda_hand_actuator')).ctrl = .55
-    #       return True
-
-    #   return AdjustGripper()
-
-    # def add_extra_effectors(robots, arena: composer.Arena):
-    #   return [MocapEffector(arena.mjcf_model.find('body', 'mmt'))]
-
-    # build_params = params.BuilderExtensions(
-    #     build_robots=add_peg,
-    #     build_arena=add_hole,
-    #     build_entity_initializer=adjust_gripper,
-    #     build_extra_effectors=add_extra_effectors)
-    # panda_env_builder = env_builder.PandaEnvironmentBuilder(
-    #     robot_params, env_params, build_params)
-
     env_builder = environment.PandaEnvironment(robot_params, arena, 0.016)
+    env_builder.add_extra_effectors([SceneEffector(plane, obj)])
 
     with env_builder.build_task_environment() as env:
         dmr_panda_utils.full_spec(env)
         agent = TeleopAgent(
             env.task.arena,
             env.action_spec(),
-            np.r_[Q_IDLE_LEFT.positions, Q_IDLE_RIGHT.positions],
+            np.r_[Q_TELEOP_LEFT.positions, Q_TELEOP_RIGHT.positions],
         )
         if not args.testing:
             app = dmr_panda_utils.ApplicationWithPlot()
@@ -326,8 +242,3 @@ def simulate() -> None:
             run_loop.run(env, agent, [], 100)
 
     agent.shutdown()
-
-    # if not args.sim_only:
-    #     move_arms(
-    #         left_hostname, right_hostname, Q_IDLE_LEFT, Q_IDLE_RIGHT, SPEED_FACTOR
-    #     )
