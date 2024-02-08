@@ -11,7 +11,7 @@ authors = [
 description = "Teleoperation between Garmi and Parti"
 readme = "README.md"
 license.file = "LICENSE"
-requires-python = ">=3.8"
+requires-python = ">=3.8, <3.11"
 classifiers = [
   "Development Status :: 1 - Planning",
   "Intended Audience :: Science/Research",
@@ -24,8 +24,6 @@ classifiers = [
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering",
   "Typing :: Typed",
 ]
