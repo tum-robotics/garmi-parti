@@ -6,7 +6,7 @@ email: jean.elsner@tum.de
 full_name: Jean Elsner
 license: Apache
 org: JeanElsner
-project_name: Garmi-Parti
+project_name: garmi-parti
 project_short_description: Teleoperation between Garmi and Parti
-url: https://github.com/JeanElsner/Garmi-Parti
+url: https://github.com/JeanElsner/garmi-parti
 vcs: true

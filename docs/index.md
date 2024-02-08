@@ -1,4 +1,4 @@
-# Garmi-Parti
+# garmi-parti
 
 ```{toctree}
 :maxdepth: 2

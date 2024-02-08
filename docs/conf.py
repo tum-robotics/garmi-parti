@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import importlib.metadata
 
-project = "Garmi-Parti"
+project = "garmi-parti"
 copyright = "2024, Jean Elsner"
 author = "Jean Elsner"
 version = release = importlib.metadata.version("garmi_parti")

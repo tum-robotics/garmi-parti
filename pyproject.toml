@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 
 [project]
-name = "Garmi-Parti"
+name = "garmi-parti"
 authors = [
   { name = "Jean Elsner", email = "jean.elsner@tum.de" },
 ]
@@ -63,10 +63,10 @@ parti-haptic-sim = "garmi_parti.parti_haptic_sim:simulate"
 garmi-mmt = "garmi_parti.garmi_mmt:teleop"
 
 [project.urls]
-Homepage = "https://github.com/JeanElsner/Garmi-Parti"
-"Bug Tracker" = "https://github.com/JeanElsner/Garmi-Parti/issues"
-Discussions = "https://github.com/JeanElsner/Garmi-Parti/discussions"
-Changelog = "https://github.com/JeanElsner/Garmi-Parti/releases"
+Homepage = "https://github.com/JeanElsner/garmi-parti"
+"Bug Tracker" = "https://github.com/JeanElsner/garmi-parti/issues"
+Discussions = "https://github.com/JeanElsner/garmi-parti/discussions"
+Changelog = "https://github.com/JeanElsner/garmi-parti/releases"
 
 
 [tool.hatch]
