@@ -1,5 +1,5 @@
 """
-Teleoperation module including networking code for the client side.
+Networking teleoperation module for the client side.
 """
 
 from __future__ import annotations

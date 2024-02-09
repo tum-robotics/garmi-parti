@@ -1,3 +1,7 @@
+"""
+Networking teleoperation module for the server side.
+"""
+
 from __future__ import annotations
 
 import contextlib

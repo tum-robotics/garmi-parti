@@ -1,5 +1,5 @@
 """
-Demos running on the Panda system.
+Teleoperation interfaces for the Panda robot.
 """
 
 from __future__ import annotations

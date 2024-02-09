@@ -45,15 +45,17 @@ def leader() -> None:
             + "PANDA is set to the respective robot hostname."
         )
     damping = np.zeros(7)
-    leader: interfaces.PandaInterface
+    _leader: interfaces.PandaInterface
     if args.mode == "joint":
-        leader = panda.JointLeader(containers.TeleopParams(robot_host, damping=damping))
+        _leader = panda.JointLeader(
+            containers.TeleopParams(robot_host, damping=damping)
+        )
     elif args.mode == "cartesian":
-        leader = panda.CartesianLeader(
+        _leader = panda.CartesianLeader(
             containers.TeleopParams(robot_host, damping=damping)
         )
 
-    cli = client.Client(leader, args.host, args.port)
+    cli = client.Client(_leader, args.host, args.port)
     client.user_interface(cli)
     cli.shutdown()
 
@@ -81,11 +83,11 @@ def follower() -> None:
             + "PANDA is set to the respective robot hostname."
         )
 
-    follower: interfaces.PandaInterface
+    _follower: interfaces.PandaInterface
     if args.mode == "joint":
-        follower = panda.JointFollower(containers.TeleopParams(robot_host))
+        _follower = panda.JointFollower(containers.TeleopParams(robot_host))
     elif args.mode == "cartesian":
-        follower = panda.CartesianFollower(containers.TeleopParams(robot_host))
-    srv = server.Server(follower, args.port)
+        _follower = panda.CartesianFollower(containers.TeleopParams(robot_host))
+    srv = server.Server(_follower, args.port)
     server.user_interface(srv)
     srv.shutdown()
