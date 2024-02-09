@@ -9,6 +9,7 @@ module. Implementations of these interfaces are generally referred
 to as `teleoperators`. We think of server-side teleoperators as followers
 and client-side teleoperators as leaders.
 """
+
 from __future__ import annotations
 
 import abc
@@ -23,7 +24,7 @@ import numpy as np
 import panda_py
 from panda_py import libfranka
 
-from . import utils
+from . import containers
 
 _logger = logging.getLogger("teleoperation.interface")
 
@@ -128,8 +129,10 @@ class PandaInterface(Interface, abc.ABC):
     Generic teleoperation interface for Panda robots.
     """
 
-    def __init__(self, params: utils.TeleopParams, has_gripper: bool = False) -> None:
-        self.panda = utils.TeleopContainer(
+    def __init__(
+        self, params: containers.TeleopParams, has_gripper: bool = False
+    ) -> None:
+        self.panda = containers.TeleopContainer(
             arm=panda_py.Panda(params.hostname, name="panda"),
             gripper=self.init_gripper(params.hostname, has_gripper),
             params=params,
@@ -140,7 +143,7 @@ class PandaInterface(Interface, abc.ABC):
         self.q_teleop = params.q_teleop
         self.move_arm(self.q_idle)
 
-    def move_arm(self, joint_positions: utils.JointPositions | None) -> None:
+    def move_arm(self, joint_positions: containers.JointPositions | None) -> None:
         """
         Move the robot arm into the given joint positions.
         """
@@ -184,7 +187,7 @@ class PandaInterface(Interface, abc.ABC):
         self.move_arm(self.q_idle)
         return True
 
-    def _pre_teleop(self, container: utils.TeleopContainer) -> None:
+    def _pre_teleop(self, container: containers.TeleopContainer) -> None:
         container.arm.set_default_behavior()
 
         # set collision behavior
@@ -195,11 +198,11 @@ class PandaInterface(Interface, abc.ABC):
             [100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
         )
 
-    def _start_teleop(self, container: utils.TeleopContainer) -> None:
+    def _start_teleop(self, container: containers.TeleopContainer) -> None:
         container.reinitialize()
         container.arm.start_controller(container.controller)
 
-    def _post_teleop(self, container: utils.TeleopContainer) -> None:
+    def _post_teleop(self, container: containers.TeleopContainer) -> None:
         container.arm.stop_controller()
 
     def get_sync_command(self) -> bytes:
@@ -208,7 +211,7 @@ class PandaInterface(Interface, abc.ABC):
     def set_sync_command(self, command: bytes) -> None:
         pass
 
-    def fdir(self, container: utils.TeleopContainer) -> None:
+    def fdir(self, container: containers.TeleopContainer) -> None:
         """
         Fault detection, isolation, and recovery.
         """
@@ -228,29 +231,29 @@ class TwoArmPandaInterface(PandaInterface, abc.ABC):
     # pylint: disable=W0231
     def __init__(
         self,
-        left: utils.TeleopParams,
-        right: utils.TeleopParams,
+        left: containers.TeleopParams,
+        right: containers.TeleopParams,
         has_left_gripper: bool = False,
         has_right_gripper: bool = False,
     ) -> None:
-        self.left = utils.TeleopContainer(
+        self.left = containers.TeleopContainer(
             arm=panda_py.Panda(left.hostname, name="left"),
             gripper=self.init_gripper(left.hostname, has_left_gripper),
             params=left,
             transform=left.transform,
             transform_inv=left.transform.inv(),
         )
-        self.right = utils.TeleopContainer(
+        self.right = containers.TeleopContainer(
             arm=panda_py.Panda(right.hostname, name="right"),
             gripper=self.init_gripper(right.hostname, has_right_gripper),
             params=right,
             transform=right.transform,
             transform_inv=right.transform.inv(),
         )
-        self.two_arm_q_idle = utils.TwoArmJointPositions(
+        self.two_arm_q_idle = containers.TwoArmJointPositions(
             left=left.q_idle, right=right.q_idle
         )
-        self.two_arm_q_teleop = utils.TwoArmJointPositions(
+        self.two_arm_q_teleop = containers.TwoArmJointPositions(
             left=left.q_teleop, right=right.q_teleop
         )
         self.move_arms(self.two_arm_q_idle)
@@ -267,7 +270,7 @@ class TwoArmPandaInterface(PandaInterface, abc.ABC):
             gripper.stop()
             gripper.grasp(0.0, 0.2, 60, 0.08, 0.08)
 
-    def move_arms(self, joint_positions: utils.TwoArmJointPositions) -> None:
+    def move_arms(self, joint_positions: containers.TwoArmJointPositions) -> None:
         """
         Move both arms to the given joint positions simultaneously.
         """

@@ -1,6 +1,7 @@
 """
 Demos running on the GARMI system.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -13,16 +14,16 @@ import panda_py
 from scipy.spatial import transform
 
 from . import panda
-from .teleoperation import interface, server, utils
+from .teleoperation import containers, interfaces, server, utils
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger("garmi")
 
-Q_IDLE_LEFT = utils.JointPositions(
+Q_IDLE_LEFT = containers.JointPositions(
     [0, -np.pi / 2, 0, -2 * np.pi / 4, 0, np.pi / 2, np.pi / 4]
 )
 Q_IDLE_RIGHT = Q_IDLE_LEFT
-Q_TELEOP_LEFT = utils.JointPositions(
+Q_TELEOP_LEFT = containers.JointPositions(
     [
         -0.08769599,
         -1.25825236,
@@ -34,7 +35,7 @@ Q_TELEOP_LEFT = utils.JointPositions(
     ]
 )
 # [0.02, -1.18, -0.06, -1.47, 0.04, 1.92, 0.75])
-Q_TELEOP_RIGHT = utils.JointPositions(
+Q_TELEOP_RIGHT = containers.JointPositions(
     [
         0.07436611,
         -1.2718769,
@@ -55,7 +56,7 @@ TRANSFORM_RIGHT = transform.Rotation.from_euler(
 ).inv()
 
 
-class CartesianFollower(panda.CartesianFollower, interface.TwoArmPandaInterface):
+class CartesianFollower(panda.CartesianFollower, interfaces.TwoArmPandaInterface):
     """
     Teleoperation interface that controls the two arms of Garmi
     in Cartesian space.
@@ -63,13 +64,13 @@ class CartesianFollower(panda.CartesianFollower, interface.TwoArmPandaInterface)
 
     def get_command(self) -> bytes:
         return pickle.dumps(
-            utils.TwoArmWrench(
+            containers.TwoArmWrench(
                 left=self._get_command(self.left), right=self._get_command(self.right)
             )
         )
 
     def set_command(self, command: bytes) -> None:
-        displacement: utils.TwoArmDisplacement = pickle.loads(command)
+        displacement: containers.TwoArmDisplacement = pickle.loads(command)
         self._set_command(displacement.left, self.left)
         self._set_command(displacement.right, self.right)
 
@@ -78,7 +79,7 @@ class CartesianFollower(panda.CartesianFollower, interface.TwoArmPandaInterface)
         self.right.arm.stop_controller()
 
 
-class JointFollower(panda.JointFollower, interface.TwoArmPandaInterface):
+class JointFollower(panda.JointFollower, interfaces.TwoArmPandaInterface):
     """
     Teleoperation interface that controls the two arms of Garmi
     in joint space.
@@ -90,13 +91,13 @@ class JointFollower(panda.JointFollower, interface.TwoArmPandaInterface):
 
     def get_command(self) -> bytes:
         return pickle.dumps(
-            utils.TwoArmJointTorques(
+            containers.TwoArmJointTorques(
                 left=self._get_command(self.left), right=self._get_command(self.right)
             )
         )
 
     def set_command(self, command: bytes) -> None:
-        joint_positions: utils.TwoArmJointPositions = pickle.loads(command)
+        joint_positions: containers.TwoArmJointPositions = pickle.loads(command)
         if joint_positions.left is not None:
             self._set_command(joint_positions.left, self.left)
         if joint_positions.right is not None:
@@ -119,8 +120,8 @@ class OneArmCartesianFollower(CartesianFollower):
     def __init__(
         self,
         side: typing.Literal["left", "right"],
-        left: utils.TeleopParams,
-        right: utils.TeleopParams,
+        left: containers.TeleopParams,
+        right: containers.TeleopParams,
         has_left_gripper: bool = False,
         has_right_gripper: bool = False,
     ) -> None:
@@ -131,7 +132,7 @@ class OneArmCartesianFollower(CartesianFollower):
         return pickle.dumps(self._get_command(getattr(self, self.side)))
 
     def set_command(self, command: bytes) -> None:
-        displacement: utils.Displacement = pickle.loads(command)
+        displacement: containers.Displacement = pickle.loads(command)
         if self.side == "left":
             self._set_command(displacement, self.left)
             self._set_command(utils.compute_displacement(self.right), self.right)
@@ -153,8 +154,8 @@ class OneArmJointFollower(JointFollower):
     def __init__(
         self,
         side: typing.Literal["left", "right"],
-        left: utils.TeleopParams,
-        right: utils.TeleopParams,
+        left: containers.TeleopParams,
+        right: containers.TeleopParams,
         has_left_gripper: bool = False,
         has_right_gripper: bool = False,
     ) -> None:
@@ -165,15 +166,15 @@ class OneArmJointFollower(JointFollower):
         return pickle.dumps(self._get_command(getattr(self, self.side)))
 
     def set_command(self, command: bytes) -> None:
-        joint_positions: utils.JointPositions = pickle.loads(command)
+        joint_positions: containers.JointPositions = pickle.loads(command)
         if self.side == "left":
             self._set_command(joint_positions, self.left)
             self._set_command(
-                utils.JointPositions(self.right.arm.get_state().q), self.right
+                containers.JointPositions(self.right.arm.get_state().q), self.right
             )
         elif self.side == "right":
             self._set_command(
-                utils.JointPositions(self.left.arm.get_state().q), self.left
+                containers.JointPositions(self.left.arm.get_state().q), self.left
             )
             self._set_command(joint_positions, self.right)
 
@@ -211,14 +212,14 @@ def teleop() -> None:
     args = parser.parse_args()
 
     left, right = utils.get_robot_hostnames()
-    left_params = utils.TeleopParams(
+    left_params = containers.TeleopParams(
         left, TRANSFORM_LEFT, Q_IDLE_LEFT, Q_TELEOP_LEFT, nullspace_stiffness=10
     )
-    right_params = utils.TeleopParams(
+    right_params = containers.TeleopParams(
         right, TRANSFORM_RIGHT, Q_IDLE_RIGHT, Q_TELEOP_RIGHT, nullspace_stiffness=10
     )
 
-    follower: interface.TwoArmPandaInterface
+    follower: interfaces.TwoArmPandaInterface
     if args.mode == "joint":
         follower = JointFollower(left_params, right_params, True, True)
     elif args.mode == "cartesian":
@@ -227,7 +228,7 @@ def teleop() -> None:
         follower = OneArmJointFollower(args.side, left_params, right_params, True, True)
 
     srv = server.Server(follower, args.port)
-    logger = interface.TwoArmLogger(follower)
+    logger = interfaces.TwoArmLogger(follower)
     server.user_interface(srv)
     srv.shutdown()
     logger.stop()

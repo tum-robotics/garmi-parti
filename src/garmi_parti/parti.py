@@ -17,17 +17,19 @@ from scipy.spatial import transform
 
 from . import panda
 from .peripherals import gamepad
-from .teleoperation import client, interface, utils
+from .teleoperation import client, containers, interfaces, utils
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger("parti")
 
-Q_IDLE_LEFT = utils.JointPositions(
+Q_IDLE_LEFT = containers.JointPositions(
     [0, -np.pi / 2, 0, -2 * np.pi / 4, 0, np.pi / 2, np.pi / 4]
 )
 Q_IDLE_RIGHT = Q_IDLE_LEFT
-Q_TELEOP_LEFT = utils.JointPositions([0.02, -1.18, -0.06, -1.47, 0.04, 1.92, 0.75])
-Q_TELEOP_RIGHT = utils.JointPositions([-0.04, -1.16, 0.08, -1.57, 0.00, 2.05, 0.84])
+Q_TELEOP_LEFT = containers.JointPositions([0.02, -1.18, -0.06, -1.47, 0.04, 1.92, 0.75])
+Q_TELEOP_RIGHT = containers.JointPositions(
+    [-0.04, -1.16, 0.08, -1.57, 0.00, 2.05, 0.84]
+)
 
 LEFT_TRANSFORM = transform.Rotation.from_euler(
     "XYZ", [0, 90 / 180 * np.pi, -90 / 180 * np.pi]
@@ -63,7 +65,7 @@ class Tickable:
             _logger.debug("Current frequency: %fHz", 1 / np.average(self._t_window))
 
 
-class CartesianLeader(panda.CartesianLeader, interface.TwoArmPandaInterface, Tickable):
+class CartesianLeader(panda.CartesianLeader, interfaces.TwoArmPandaInterface, Tickable):
     """
     Use PARTI or a similar system as a cartesian teleoperation leader device.
     """
@@ -80,22 +82,24 @@ class CartesianLeader(panda.CartesianLeader, interface.TwoArmPandaInterface, Tic
 
         self.paused = False
 
-        q_idle = utils.TwoArmJointPositions(left=Q_IDLE_LEFT, right=Q_IDLE_RIGHT)
-        q_teleop = utils.TwoArmJointPositions(left=Q_TELEOP_LEFT, right=Q_TELEOP_RIGHT)
+        q_idle = containers.TwoArmJointPositions(left=Q_IDLE_LEFT, right=Q_IDLE_RIGHT)
+        q_teleop = containers.TwoArmJointPositions(
+            left=Q_TELEOP_LEFT, right=Q_TELEOP_RIGHT
+        )
 
         left_transform = LEFT_TRANSFORM
         right_transform = RIGHT_TRANSFORM
 
-        interface.TwoArmPandaInterface.__init__(
+        interfaces.TwoArmPandaInterface.__init__(
             self,
-            utils.TeleopParams(
+            containers.TeleopParams(
                 left_hostname,
                 left_transform,
                 q_idle=q_idle.left,
                 q_teleop=q_teleop.left,
                 damping=DAMPING,
             ),
-            utils.TeleopParams(
+            containers.TeleopParams(
                 right_hostname,
                 right_transform,
                 q_idle=q_idle.right,
@@ -107,16 +111,18 @@ class CartesianLeader(panda.CartesianLeader, interface.TwoArmPandaInterface, Tic
     def get_command(self) -> bytes:
         if self.paused:
             return pickle.dumps(
-                utils.TwoArmDisplacement(utils.Displacement(), utils.Displacement())
+                containers.TwoArmDisplacement(
+                    containers.Displacement(), containers.Displacement()
+                )
             )
-        displacement = utils.TwoArmDisplacement(
+        displacement = containers.TwoArmDisplacement(
             left=utils.compute_displacement(self.left),
             right=utils.compute_displacement(self.right),
         )
         return pickle.dumps(displacement)
 
     def set_command(self, command: bytes) -> None:
-        wrench: utils.TwoArmWrench = pickle.loads(command)
+        wrench: containers.TwoArmWrench = pickle.loads(command)
         self._set_command(self.left, wrench.left)
         self._set_command(self.right, wrench.right)
         self.tick()
@@ -127,7 +133,7 @@ class CartesianLeader(panda.CartesianLeader, interface.TwoArmPandaInterface, Tic
         self.paused = False
 
 
-class JointLeader(panda.JointLeader, interface.TwoArmPandaInterface, Tickable):
+class JointLeader(panda.JointLeader, interfaces.TwoArmPandaInterface, Tickable):
     """
     Use PARTI or a similar system as a joint-space teleoperation leader device.
     """
@@ -142,22 +148,24 @@ class JointLeader(panda.JointLeader, interface.TwoArmPandaInterface, Tickable):
     ) -> None:
         Tickable.__init__(self, window_size, interval)  # type: ignore[call-arg]
 
-        q_idle = utils.TwoArmJointPositions(left=Q_IDLE_LEFT, right=Q_IDLE_RIGHT)
-        q_teleop = utils.TwoArmJointPositions(left=Q_TELEOP_LEFT, right=Q_TELEOP_RIGHT)
+        q_idle = containers.TwoArmJointPositions(left=Q_IDLE_LEFT, right=Q_IDLE_RIGHT)
+        q_teleop = containers.TwoArmJointPositions(
+            left=Q_TELEOP_LEFT, right=Q_TELEOP_RIGHT
+        )
 
         left_transform = LEFT_TRANSFORM
         right_transform = RIGHT_TRANSFORM
 
-        interface.TwoArmPandaInterface.__init__(
+        interfaces.TwoArmPandaInterface.__init__(
             self,
-            utils.TeleopParams(
+            containers.TeleopParams(
                 left_hostname,
                 left_transform,
                 q_idle=q_idle.left,
                 q_teleop=q_teleop.left,
                 damping=DAMPING,
             ),
-            utils.TeleopParams(
+            containers.TeleopParams(
                 right_hostname,
                 right_transform,
                 q_idle=q_idle.right,
@@ -168,13 +176,13 @@ class JointLeader(panda.JointLeader, interface.TwoArmPandaInterface, Tickable):
 
     def get_command(self) -> bytes:
         return pickle.dumps(
-            utils.TwoArmJointPositions(
+            containers.TwoArmJointPositions(
                 left=self._get_command(self.left), right=self._get_command(self.right)
             )
         )
 
     def set_command(self, command: bytes) -> None:
-        joint_torques: utils.TwoArmJointTorques = pickle.loads(command)
+        joint_torques: containers.TwoArmJointTorques = pickle.loads(command)
         self._set_command(self.left, joint_torques.left)
         self._set_command(self.right, joint_torques.right)
         self.tick()
@@ -210,7 +218,7 @@ def teleop() -> None:
         logging.basicConfig(level=logging.DEBUG, force=True)
 
     left, right = utils.get_robot_hostnames()
-    leader: interface.TwoArmPandaInterface
+    leader: interfaces.TwoArmPandaInterface
     if args.mode == "joint":
         leader = JointLeader(left, right)
     elif args.mode == "cartesian":
@@ -219,7 +227,7 @@ def teleop() -> None:
     cli = client.Client(leader, args.host, args.port)
     # gp_publisher = Publisher(args.gamepad_port, 30)
     gamepad_handle = gamepad.GamepadHandle(cli, "localhost", args.gamepad_port)
-    logger = interface.TwoArmLogger(leader)
+    logger = interfaces.TwoArmLogger(leader)
     client.user_interface(cli)
     cli.shutdown()
     gamepad_handle.stop()

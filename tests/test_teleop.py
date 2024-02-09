@@ -8,12 +8,12 @@ from unittest import mock
 import numpy as np
 import pytest
 
-from garmi_parti.teleoperation import client, server, utils
+from garmi_parti.teleoperation import client, containers, server
 
 # Set the seed for reproducibility (optional)
 rng = np.random.default_rng(42)
 
-SYNC_CMD = pickle.dumps(utils.JointPositions(np.zeros(7)))
+SYNC_CMD = pickle.dumps(containers.JointPositions(np.zeros(7)))
 
 
 class TestNetworking(unittest.TestCase):

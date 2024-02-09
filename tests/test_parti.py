@@ -10,7 +10,7 @@ import pytest
 from numpy import testing
 
 from garmi_parti import parti
-from garmi_parti.teleoperation import utils
+from garmi_parti.teleoperation import containers
 
 
 class TestParti(unittest.TestCase):
@@ -18,12 +18,12 @@ class TestParti(unittest.TestCase):
         leader = parti.CartesianLeader("left", "right")
         leader.pre_teleop()
         leader.start_teleop()
-        cmd = utils.TwoArmWrench(
-            utils.Wrench(np.zeros(3), np.zeros(3)),
-            utils.Wrench(np.zeros(3), np.zeros(3)),
+        cmd = containers.TwoArmWrench(
+            containers.Wrench(np.zeros(3), np.zeros(3)),
+            containers.Wrench(np.zeros(3), np.zeros(3)),
         )
         leader.set_command(pickle.dumps(cmd))
-        displacement: utils.TwoArmDisplacement = pickle.loads(leader.get_command())
+        displacement: containers.TwoArmDisplacement = pickle.loads(leader.get_command())
         self.assert_displacement(displacement.left)
         self.assert_displacement(displacement.right)
         leader.pause()
@@ -35,11 +35,14 @@ class TestParti(unittest.TestCase):
         leader.pre_teleop()
         leader.start_teleop()
         leader.get_sync_command()
-        cmd = utils.TwoArmJointTorques(
-            left=utils.JointTorques(np.zeros(7)), right=utils.JointTorques(np.zeros(7))
+        cmd = containers.TwoArmJointTorques(
+            left=containers.JointTorques(np.zeros(7)),
+            right=containers.JointTorques(np.zeros(7)),
         )
         leader.set_command(pickle.dumps(cmd))
-        joint_positions: utils.TwoArmJointPositions = pickle.loads(leader.get_command())
+        joint_positions: containers.TwoArmJointPositions = pickle.loads(
+            leader.get_command()
+        )
         self.assert_joint_positions(joint_positions.left)
         self.assert_joint_positions(joint_positions.right)
         leader.pause()
@@ -47,13 +50,13 @@ class TestParti(unittest.TestCase):
         leader.post_teleop()
 
     def assert_joint_positions(
-        self, joint_positions: utils.JointPositions | None
+        self, joint_positions: containers.JointPositions | None
     ) -> None:
         assert joint_positions is not None
         if joint_positions is not None:
             testing.assert_allclose(joint_positions.positions, np.zeros(7))
 
-    def assert_displacement(self, displacement: utils.Displacement) -> None:
+    def assert_displacement(self, displacement: containers.Displacement) -> None:
         testing.assert_allclose(displacement.linear, np.zeros(3))
         testing.assert_allclose(displacement.angular.as_euler("XYZ"), np.zeros(3))
 

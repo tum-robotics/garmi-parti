@@ -29,15 +29,17 @@ from dm_robotics.panda import parameters as params
 from dm_robotics.panda import utils as dmr_panda_utils
 from dm_robotics.transformations import transformations as tr
 
-from .teleoperation import utils
+from .teleoperation import containers
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger("parti_haptic_sim")
 
 XML_PATH = pathlib.Path(pathlib.Path(__file__).parent) / "assets" / "parti_mmt.xml"
 
-Q_TELEOP_LEFT = utils.JointPositions([0.02, -1.18, -0.06, -1.47, 0.04, 1.92, 0.75])
-Q_TELEOP_RIGHT = utils.JointPositions([-0.04, -1.16, 0.08, -1.57, 0.00, 2.05, 0.84])
+Q_TELEOP_LEFT = containers.JointPositions([0.02, -1.18, -0.06, -1.47, 0.04, 1.92, 0.75])
+Q_TELEOP_RIGHT = containers.JointPositions(
+    [-0.04, -1.16, 0.08, -1.57, 0.00, 2.05, 0.84]
+)
 
 SPEED_FACTOR = 0.2
 
@@ -72,9 +74,9 @@ class TeleopAgent:
         Steps the agent.
         Receives a percept from the environment and returns an action.
         """
-        joint_positions = utils.TwoArmJointPositions(
-            left=utils.JointPositions(timestep.observation["left_joint_pos"]),
-            right=utils.JointPositions(timestep.observation["right_joint_pos"]),
+        joint_positions = containers.TwoArmJointPositions(
+            left=containers.JointPositions(timestep.observation["left_joint_pos"]),
+            right=containers.JointPositions(timestep.observation["right_joint_pos"]),
         )
         self.socket.send(pickle.dumps(joint_positions))
         return np.zeros(23)

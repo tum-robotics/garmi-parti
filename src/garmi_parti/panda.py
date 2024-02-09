@@ -1,6 +1,7 @@
 """
 Demos running on the Panda system.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -12,30 +13,30 @@ import numpy as np
 from panda_py import controllers
 from scipy.spatial import transform as tr
 
-from .teleoperation import client, interface, server, utils
+from .teleoperation import client, containers, interfaces, server, utils
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger("panda")
 
-Q_IDLE = utils.JointPositions(
+Q_IDLE = containers.JointPositions(
     [0.0, -np.pi / 4, 0.0, -3 * np.pi / 4, 0.0, np.pi / 2, np.pi / 4]
 )
-Q_TELEOP = utils.JointPositions(
+Q_TELEOP = containers.JointPositions(
     [0.0, -np.pi / 4, 0.0, -3 * np.pi / 4, 0.0, np.pi / 2, np.pi / 4]
 )
 
 
-class CartesianLeader(interface.PandaInterface):
+class CartesianLeader(interfaces.PandaInterface):
     """
     Teleoperation interface that uses a Panda robot as a haptic input
     device in Cartesian space.
     """
 
-    def __init__(self, params: utils.TeleopParams) -> None:
+    def __init__(self, params: containers.TeleopParams) -> None:
         super().__init__(params)
         self.paused = False
 
-    def _pre_teleop(self, container: utils.TeleopContainer) -> None:
+    def _pre_teleop(self, container: containers.TeleopContainer) -> None:
         super()._pre_teleop(container)
         container.controller = controllers.AppliedForce(
             damping=container.params.damping, filter_coeff=container.params.filter_coeff
@@ -43,15 +44,15 @@ class CartesianLeader(interface.PandaInterface):
 
     def get_command(self) -> bytes:
         if self.paused:
-            return pickle.dumps(utils.Displacement())
+            return pickle.dumps(containers.Displacement())
         return pickle.dumps(utils.compute_displacement(self.panda))
 
     def set_command(self, command: bytes) -> None:
-        wrench: utils.Wrench = pickle.loads(command)
+        wrench: containers.Wrench = pickle.loads(command)
         self._set_command(self.panda, wrench)
 
     def _set_command(
-        self, container: utils.TeleopContainer, wrench: utils.Wrench
+        self, container: containers.TeleopContainer, wrench: containers.Wrench
     ) -> None:
         self.fdir(container)
         force_d = -container.params.gain_force * (
@@ -70,16 +71,16 @@ class CartesianLeader(interface.PandaInterface):
         self.paused = False
 
 
-class JointLeader(interface.PandaInterface):
+class JointLeader(interfaces.PandaInterface):
     """
     Teleoperation interface that uses a Panda robot as a haptic input
     device in joint space.
     """
 
-    def __init__(self, params: utils.TeleopParams) -> None:
+    def __init__(self, params: containers.TeleopParams) -> None:
         super().__init__(params)
 
-    def _pre_teleop(self, container: utils.TeleopContainer) -> None:
+    def _pre_teleop(self, container: containers.TeleopContainer) -> None:
         super()._pre_teleop(container)
         container.controller = controllers.AppliedTorque(
             damping=container.params.damping, filter_coeff=container.params.filter_coeff
@@ -88,15 +89,19 @@ class JointLeader(interface.PandaInterface):
     def get_command(self) -> bytes:
         return pickle.dumps(self._get_command(self.panda))
 
-    def _get_command(self, container: utils.TeleopContainer) -> utils.JointPositions:
-        return utils.JointPositions(container.arm.get_state().q)
+    def _get_command(
+        self, container: containers.TeleopContainer
+    ) -> containers.JointPositions:
+        return containers.JointPositions(container.arm.get_state().q)
 
     def set_command(self, command: bytes) -> None:
-        joint_torques: utils.JointTorques = pickle.loads(command)
+        joint_torques: containers.JointTorques = pickle.loads(command)
         self._set_command(self.panda, joint_torques)
 
     def _set_command(
-        self, container: utils.TeleopContainer, joint_torques: utils.JointTorques
+        self,
+        container: containers.TeleopContainer,
+        joint_torques: containers.JointTorques,
     ) -> None:
         self.fdir(container)
         container.controller.set_control(
@@ -113,12 +118,12 @@ class JointLeader(interface.PandaInterface):
         return self.get_command()
 
 
-class CartesianFollower(interface.PandaInterface):
+class CartesianFollower(interfaces.PandaInterface):
     """
     Teleoperation interface that controls a Panda robot in Cartesian space.
     """
 
-    def _pre_teleop(self, container: utils.TeleopContainer) -> None:
+    def _pre_teleop(self, container: containers.TeleopContainer) -> None:
         super()._pre_teleop(container)
 
         # Compliance parameters
@@ -135,19 +140,19 @@ class CartesianFollower(interface.PandaInterface):
     def get_command(self) -> bytes:
         return pickle.dumps(self._get_command(self.panda))
 
-    def _get_command(self, container: utils.TeleopContainer) -> utils.Wrench:
+    def _get_command(self, container: containers.TeleopContainer) -> containers.Wrench:
         wrench = container.arm.get_state().O_F_ext_hat_K
-        return utils.Wrench(
+        return containers.Wrench(
             force=container.transform_inv.apply(wrench[:3]),
             torque=container.transform_inv.apply(wrench[3:]),
         )
 
     def set_command(self, command: bytes) -> None:
-        displacement: utils.Displacement = pickle.loads(command)
+        displacement: containers.Displacement = pickle.loads(command)
         self._set_command(displacement, self.panda)
 
     def _set_command(
-        self, command: utils.Displacement, container: utils.TeleopContainer
+        self, command: containers.Displacement, container: containers.TeleopContainer
     ) -> None:
         self.fdir(container)
         if container.params.lock_translation:
@@ -170,12 +175,12 @@ class CartesianFollower(interface.PandaInterface):
         self.start_teleop()
 
 
-class JointFollower(interface.PandaInterface):
+class JointFollower(interfaces.PandaInterface):
     """
     Teleoperation interface that controls a Panda robot in joint space.
     """
 
-    def _pre_teleop(self, container: utils.TeleopContainer) -> None:
+    def _pre_teleop(self, container: containers.TeleopContainer) -> None:
         super()._pre_teleop(container)
 
         container.controller = controllers.JointPosition(
@@ -187,15 +192,19 @@ class JointFollower(interface.PandaInterface):
     def get_command(self) -> bytes:
         return pickle.dumps(self._get_command(self.panda))
 
-    def _get_command(self, container: utils.TeleopContainer) -> utils.JointTorques:
-        return utils.JointTorques(container.arm.get_state().tau_ext_hat_filtered)
+    def _get_command(
+        self, container: containers.TeleopContainer
+    ) -> containers.JointTorques:
+        return containers.JointTorques(container.arm.get_state().tau_ext_hat_filtered)
 
     def set_command(self, command: bytes) -> None:
-        joint_positions: utils.JointPositions = pickle.loads(command)
+        joint_positions: containers.JointPositions = pickle.loads(command)
         self._set_command(joint_positions, self.panda)
 
     def _set_command(
-        self, joint_positions: utils.JointPositions, container: utils.TeleopContainer
+        self,
+        joint_positions: containers.JointPositions,
+        container: containers.TeleopContainer,
     ) -> None:
         self.fdir(container)
         container.controller.set_control(joint_positions.positions)
@@ -234,11 +243,11 @@ def teleop_leader() -> None:
             + "PANDA is set to the respective robot hostname."
         )
     damping = np.zeros(7)
-    leader: interface.PandaInterface
+    leader: interfaces.PandaInterface
     if args.mode == "joint":
-        leader = JointLeader(utils.TeleopParams(robot_host, damping=damping))
+        leader = JointLeader(containers.TeleopParams(robot_host, damping=damping))
     elif args.mode == "cartesian":
-        leader = CartesianLeader(utils.TeleopParams(robot_host, damping=damping))
+        leader = CartesianLeader(containers.TeleopParams(robot_host, damping=damping))
 
     cli = client.Client(leader, args.host, args.port)
     client.user_interface(cli)
@@ -268,11 +277,11 @@ def teleop_follower() -> None:
             + "PANDA is set to the respective robot hostname."
         )
 
-    follower: interface.PandaInterface
+    follower: interfaces.PandaInterface
     if args.mode == "joint":
-        follower = JointFollower(utils.TeleopParams(robot_host))
+        follower = JointFollower(containers.TeleopParams(robot_host))
     elif args.mode == "cartesian":
-        follower = CartesianFollower(utils.TeleopParams(robot_host))
+        follower = CartesianFollower(containers.TeleopParams(robot_host))
     srv = server.Server(follower, args.port)
     server.user_interface(srv)
     srv.shutdown()

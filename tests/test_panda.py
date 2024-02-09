@@ -9,20 +9,20 @@ import pytest
 from numpy import testing
 
 from garmi_parti import panda
-from garmi_parti.teleoperation import utils
+from garmi_parti.teleoperation import containers
 
 
 class TestPanda(unittest.TestCase):
     def test_cartesian_leader(self):
-        panda_params = utils.TeleopParams(
+        panda_params = containers.TeleopParams(
             "panda-host", q_idle=panda.Q_IDLE, q_teleop=panda.Q_TELEOP
         )
         leader = panda.CartesianLeader(panda_params)
         leader.pre_teleop()
         leader.start_teleop()
-        cmd = utils.Wrench(np.zeros(3), np.zeros(3))
+        cmd = containers.Wrench(np.zeros(3), np.zeros(3))
         leader.set_command(pickle.dumps(cmd))
-        displacement: utils.Displacement = pickle.loads(leader.get_command())
+        displacement: containers.Displacement = pickle.loads(leader.get_command())
         testing.assert_allclose(displacement.linear, np.zeros(3))
         testing.assert_allclose(displacement.angular.as_euler("XYZ"), np.zeros(3))
         leader.pause()
@@ -32,17 +32,19 @@ class TestPanda(unittest.TestCase):
         leader.post_teleop()
 
     def test_joint_leader(self):
-        panda_params = utils.TeleopParams(
+        panda_params = containers.TeleopParams(
             "panda-host", q_idle=panda.Q_IDLE, q_teleop=panda.Q_TELEOP
         )
         leader = panda.JointLeader(panda_params)
         leader.pre_teleop()
         leader.start_teleop()
-        joint_positions: utils.JointPositions = pickle.loads(leader.get_sync_command())
+        joint_positions: containers.JointPositions = pickle.loads(
+            leader.get_sync_command()
+        )
         testing.assert_allclose(joint_positions.positions, np.zeros(7))
-        cmd = utils.JointTorques(np.zeros(7))
+        cmd = containers.JointTorques(np.zeros(7))
         leader.set_command(pickle.dumps(cmd))
-        joint_positions: utils.JointPositions = pickle.loads(leader.get_command())
+        joint_positions: containers.JointPositions = pickle.loads(leader.get_command())
         testing.assert_allclose(joint_positions.positions, np.zeros(7))
         leader.pause()
         leader.unpause()
@@ -51,15 +53,15 @@ class TestPanda(unittest.TestCase):
         leader.post_teleop()
 
     def test_cartesian_follower(self):
-        panda_params = utils.TeleopParams(
+        panda_params = containers.TeleopParams(
             "panda-host", q_idle=panda.Q_IDLE, q_teleop=panda.Q_TELEOP
         )
         follower = panda.CartesianFollower(panda_params, True)
         follower.pre_teleop()
         follower.start_teleop()
-        cmd = utils.Displacement()
+        cmd = containers.Displacement()
         follower.set_command(pickle.dumps(cmd))
-        wrench: utils.Wrench = pickle.loads(follower.get_command())
+        wrench: containers.Wrench = pickle.loads(follower.get_command())
         testing.assert_allclose(wrench.force, np.zeros(3))
         testing.assert_allclose(wrench.torque, np.zeros(3))
         follower.open()
@@ -71,16 +73,16 @@ class TestPanda(unittest.TestCase):
         follower.post_teleop()
 
     def test_joint_follower(self):
-        panda_params = utils.TeleopParams(
+        panda_params = containers.TeleopParams(
             "panda-host", q_idle=panda.Q_IDLE, q_teleop=panda.Q_TELEOP
         )
         follower = panda.JointFollower(panda_params, True)
         follower.pre_teleop()
         follower.start_teleop()
-        follower.set_sync_command(pickle.dumps(utils.JointPositions(np.zeros(7))))
-        cmd = utils.JointPositions(np.zeros(7))
+        follower.set_sync_command(pickle.dumps(containers.JointPositions(np.zeros(7))))
+        cmd = containers.JointPositions(np.zeros(7))
         follower.set_command(pickle.dumps(cmd))
-        joint_torques: utils.JointTorques = pickle.loads(follower.get_command())
+        joint_torques: containers.JointTorques = pickle.loads(follower.get_command())
         testing.assert_allclose(joint_torques.torques, np.zeros(7))
         follower.open()
         follower.close()

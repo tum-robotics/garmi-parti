@@ -10,7 +10,7 @@ import socket
 import threading
 from xmlrpc import client
 
-from . import interface, utils
+from . import interfaces, utils
 
 _logger = logging.getLogger("teleoperation.client")
 
@@ -26,7 +26,9 @@ class Client:
     to a teleoperated robot (follower).
     """
 
-    def __init__(self, teleoperator: interface.Interface, host: str, port: int) -> None:
+    def __init__(
+        self, teleoperator: interfaces.Interface, host: str, port: int
+    ) -> None:
         self.rpc = client.ServerProxy(
             f"http://{host}:{port}", allow_none=True, use_builtin_types=True
         )

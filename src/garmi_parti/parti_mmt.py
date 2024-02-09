@@ -12,13 +12,13 @@ import threading
 import zmq
 
 from .peripherals import gamepad
-from .teleoperation import client, interface
+from .teleoperation import client, interfaces
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger("parti_mmt")
 
 
-class Leader(interface.Interface):
+class Leader(interfaces.Interface):
     """
     Use PARTI or a similar system as a model-mediated teleoperation leader device.
     This module requires the `parti-haptic-sim` module to be running.

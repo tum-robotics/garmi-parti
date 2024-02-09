@@ -12,7 +12,7 @@ import zmq
 from numpy import testing
 
 from garmi_parti import garmi_mmt, parti_mmt
-from garmi_parti.teleoperation import utils
+from garmi_parti.teleoperation import containers
 
 
 class TestGarmi(unittest.TestCase):
@@ -37,7 +37,9 @@ class TestGarmi(unittest.TestCase):
         leader.start_teleop()
         leader.get_sync_command()
         leader.set_command(b"")
-        joint_positions: utils.TwoArmJointPositions = pickle.loads(leader.get_command())
+        joint_positions: containers.TwoArmJointPositions = pickle.loads(
+            leader.get_command()
+        )
         self.assert_joint_positions(joint_positions.left)
         self.assert_joint_positions(joint_positions.right)
         leader.pause()
@@ -45,7 +47,9 @@ class TestGarmi(unittest.TestCase):
         leader.post_teleop()
         self.stop_pub()
 
-    def assert_joint_positions(self, joint_positions: utils.JointPositions) -> None:
+    def assert_joint_positions(
+        self, joint_positions: containers.JointPositions
+    ) -> None:
         testing.assert_allclose(joint_positions.positions, np.zeros(7))
 
     def start_pub(self):
@@ -64,9 +68,9 @@ class TestGarmi(unittest.TestCase):
         while self.running:
             socket.send(
                 pickle.dumps(
-                    utils.TwoArmJointPositions(
-                        left=utils.JointPositions(np.zeros(7)),
-                        right=utils.JointPositions(np.zeros(7)),
+                    containers.TwoArmJointPositions(
+                        left=containers.JointPositions(np.zeros(7)),
+                        right=containers.JointPositions(np.zeros(7)),
                     )
                 )
             )

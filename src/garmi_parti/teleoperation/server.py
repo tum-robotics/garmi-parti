@@ -7,7 +7,7 @@ import threading
 import time
 from xmlrpc import server
 
-from . import interface, utils
+from . import interfaces, utils
 
 _logger = logging.getLogger("teleoperation.server")
 
@@ -26,7 +26,7 @@ class _UDPHandler(socketserver.BaseRequestHandler):
 
 class _UDPServer(socketserver.UDPServer):
     def __init__(
-        self, server_address: tuple[str, int], teleoperator: interface.Interface
+        self, server_address: tuple[str, int], teleoperator: interfaces.Interface
     ) -> None:
         self.teleoperator = teleoperator
         self.t = utils.Timer(UDP_TIMESTEP, UDP_TIMEOUT)
@@ -41,7 +41,7 @@ class Server:
     """
 
     def __init__(
-        self, teleoperator: interface.Interface, port: int, udp_timeout: float = 1.0
+        self, teleoperator: interfaces.Interface, port: int, udp_timeout: float = 1.0
     ) -> None:
         _logger.info("Starting teleoperation server")
         self.teleoperator = teleoperator

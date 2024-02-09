@@ -1,6 +1,7 @@
 """
 Demos running on the GARMI system.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -11,7 +12,7 @@ import numpy as np
 from scipy.spatial import transform
 
 from . import garmi
-from .teleoperation import server, utils
+from .teleoperation import containers, server, utils
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger("garmi")
@@ -44,13 +45,13 @@ def teleop() -> None:
     args = parser.parse_args()
 
     left, right = utils.get_robot_hostnames()
-    left_params = utils.TeleopParams(
+    left_params = containers.TeleopParams(
         left,
         transform.Rotation.from_euler(
             "XYZ", [0, 90 / 180 * np.pi, -90 / 180 * np.pi]
         ).inv(),
     )
-    right_params = utils.TeleopParams(
+    right_params = containers.TeleopParams(
         right,
         transform.Rotation.from_euler(
             "XYZ", [0, 90 / 180 * np.pi, 90 / 180 * np.pi]

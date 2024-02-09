@@ -10,9 +10,9 @@ import numpy as np
 import zmq
 
 from garmi_parti.peripherals import gamepad
-from garmi_parti.teleoperation import client, server, utils
+from garmi_parti.teleoperation import client, containers, server
 
-SYNC_CMD = pickle.dumps(utils.JointPositions(np.zeros(7)))
+SYNC_CMD = pickle.dumps(containers.JointPositions(np.zeros(7)))
 
 
 class TestGamepad(unittest.TestCase):

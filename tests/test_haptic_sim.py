@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 
 from garmi_parti import parti_haptic_sim
-from garmi_parti.teleoperation import utils
+from garmi_parti.teleoperation import containers
 
 
 class TestHapticSim(unittest.TestCase):
@@ -16,7 +16,7 @@ class TestHapticSim(unittest.TestCase):
         parti_haptic_sim.move_arms(
             "left-hostname",
             "right-hostname",
-            utils.JointPositions(np.zeros(7)),
-            utils.JointPositions(np.zeros(7)),
+            containers.JointPositions(np.zeros(7)),
+            containers.JointPositions(np.zeros(7)),
             0.2,
         )
