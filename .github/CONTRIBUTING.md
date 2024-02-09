@@ -71,7 +71,7 @@ pytest
 Use pytest-cov to generate coverage reports:
 
 ```bash
-pytest --cov=garmi-parti
+pytest --cov=garmi_parti
 ```
 
 # Building docs
