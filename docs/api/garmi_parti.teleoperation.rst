@@ -17,10 +17,18 @@ garmi\_parti.teleoperation.client module
    :undoc-members:
    :show-inheritance:
 
-garmi\_parti.teleoperation.interface module
--------------------------------------------
+garmi\_parti.teleoperation.containers module
+--------------------------------------------
 
-.. automodule:: garmi_parti.teleoperation.interface
+.. automodule:: garmi_parti.teleoperation.containers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+garmi\_parti.teleoperation.interfaces module
+--------------------------------------------
+
+.. automodule:: garmi_parti.teleoperation.interfaces
    :members:
    :undoc-members:
    :show-inheritance:
