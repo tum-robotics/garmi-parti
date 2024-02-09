@@ -21,7 +21,7 @@ Q_TELEOP = containers.JointPositions(
 )
 
 
-def teleop_leader() -> None:
+def leader() -> None:
     """
     Panda teleoperation demo.
     This Panda system acts as a network client and teleoperation
@@ -58,7 +58,7 @@ def teleop_leader() -> None:
     cli.shutdown()
 
 
-def teleop_follower() -> None:
+def follower() -> None:
     """
     Panda teleoperation demo.
     The Panda system acts as a network server and teleoperation

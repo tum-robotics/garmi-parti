@@ -53,12 +53,12 @@ docs = [
 
 [project.scripts]
 parti-teleop = "garmi_parti.launchers.parti_teleop:main"
-garmi-teleop = "garmi_parti.garmi:teleop"
-panda-teleop-leader = "garmi_parti.panda:teleop_leader"
-panda-teleop-follower = "garmi_parti.panda:teleop_follower"
-parti-mmt = "garmi_parti.parti_mmt:teleop"
-parti-haptic-sim = "garmi_parti.parti_haptic_sim:simulate"
-garmi-mmt = "garmi_parti.garmi_mmt:teleop"
+garmi-teleop = "garmi_parti.launchers.garmi_teleop:main"
+panda-teleop-leader = "garmi_parti.launchers.panda_teleop:leader"
+panda-teleop-follower = "garmi_parti.launchers.panda_teleop:follower"
+parti-mmt = "garmi_parti.launchers.parti_mmt:main"
+parti-haptic-sim = "garmi_parti.launchers.parti_haptic_sim:main"
+garmi-mmt = "garmi_parti.launchers.garmi_mmt:main"
 
 [project.urls]
 Homepage = "https://github.com/JeanElsner/garmi-parti"

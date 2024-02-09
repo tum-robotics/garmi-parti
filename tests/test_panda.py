@@ -97,13 +97,13 @@ class TestPanda(unittest.TestCase):
     def test_entrypoints(self, *args):
         del args
         with pytest.raises(ConnectionRefusedError):
-            panda_teleop.teleop_leader()
+            panda_teleop.leader()
 
     @mock.patch.dict("os.environ", {}, clear=True)
     def test_entrypoints_raises(self):
         with pytest.raises(RuntimeError) as ctx:
-            panda_teleop.teleop_follower()
+            panda_teleop.follower()
         assert "environment variable PANDA" in str(ctx.value.args[0])
         with pytest.raises(RuntimeError) as ctx:
-            panda_teleop.teleop_leader()
+            panda_teleop.leader()
         assert "environment variable PANDA" in str(ctx.value.args[0])
