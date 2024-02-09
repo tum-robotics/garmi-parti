@@ -10,6 +10,7 @@ import pytest
 from numpy import testing
 
 from garmi_parti import parti
+from garmi_parti.launchers import parti_teleop
 from garmi_parti.teleoperation import containers
 
 
@@ -64,11 +65,11 @@ class TestParti(unittest.TestCase):
     def test_entrypoints(self, *args) -> None:
         del args
         with pytest.raises(ConnectionRefusedError):  # noqa: PT012
-            parti.teleop()
+            parti_teleop.main()
             time.sleep(5)
 
     @mock.patch.dict("os.environ", {}, clear=True)
     def test_entrypoints_raises(self) -> None:
         with pytest.raises(RuntimeError) as ctx:
-            parti.teleop()
+            parti_teleop.main()
         assert "PANDA_LEFT and PANDA_RIGHT" in str(ctx.value.args[0])

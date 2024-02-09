@@ -11,7 +11,8 @@ import pytest
 import zmq
 from numpy import testing
 
-from garmi_parti import garmi_mmt, parti_mmt
+from garmi_parti.launchers import garmi_mmt, parti_mmt
+from garmi_parti.parti import mmt
 from garmi_parti.teleoperation import containers
 
 
@@ -19,20 +20,20 @@ class TestGarmi(unittest.TestCase):
     @mock.patch("builtins.input", return_value="")
     def test_garmi_mmt_entrypoints(self, *args):
         del args
-        garmi_mmt.teleop()
+        garmi_mmt.main()
 
     @mock.patch("builtins.input", return_value="")
     def test_parti_mmt_entrypoints(self, *args):
         del args
         self.start_pub()
         with pytest.raises(ConnectionRefusedError):  # noqa: PT012
-            parti_mmt.teleop()
+            parti_mmt.main()
             time.sleep(5)
         self.stop_pub()
 
     def test_joint_leader(self):
         self.start_pub()
-        leader = parti_mmt.Leader()
+        leader = mmt.Leader()
         leader.pre_teleop()
         leader.start_teleop()
         leader.get_sync_command()

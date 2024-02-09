@@ -1,26 +1,21 @@
 """
-Demos running on the PARTI system.
+Teleoperation interfaces for the Parti robot.
 """
 
 from __future__ import annotations
 
-import argparse
 import collections
 import logging
 import pickle
 import time
 
 import numpy as np
-
-# from pypartigp.zmq import Publisher
 from scipy.spatial import transform
 
-from . import panda
-from .peripherals import gamepad
-from .teleoperation import client, containers, interfaces, utils
+from .. import panda
 
-logging.basicConfig(level=logging.INFO)
-_logger = logging.getLogger("parti")
+# from pypartigp.zmq import Publisher
+from ..teleoperation import containers, interfaces, utils
 
 Q_IDLE_LEFT = containers.JointPositions(
     [0, -np.pi / 2, 0, -2 * np.pi / 4, 0, np.pi / 2, np.pi / 4]
@@ -46,11 +41,17 @@ class Tickable:
     Tickable class that can be mixed in to track runtime.
     """
 
-    def __init__(self, window_size: int = 1000, interval: int = 2000) -> None:
+    def __init__(
+        self,
+        window_size: int = 1000,
+        interval: int = 2000,
+        logger: logging.Logger | None = None,
+    ) -> None:
         self._t_last = time.perf_counter()
         self._t_window: collections.deque[float] = collections.deque(maxlen=window_size)
         self.num_ticks = 0
         self.interval = interval
+        self._logger = logger
 
     def tick(self) -> None:
         """
@@ -61,8 +62,10 @@ class Tickable:
         self._t_last = t_curr
         self.num_ticks += 1
 
-        if self.num_ticks % self.interval == 0:
-            _logger.debug("Current frequency: %fHz", 1 / np.average(self._t_window))
+        if self._logger is not None and self.num_ticks % self.interval == 0:
+            self._logger.debug(
+                "Current frequency: %fHz", 1 / np.average(self._t_window)
+            )
 
 
 class CartesianLeader(panda.CartesianLeader, interfaces.TwoArmPandaInterface, Tickable):
@@ -77,8 +80,9 @@ class CartesianLeader(panda.CartesianLeader, interfaces.TwoArmPandaInterface, Ti
         right_hostname: str,
         window_size: int = 1000,
         interval: int = 2000,
+        logger: logging.Logger | None = None,
     ) -> None:
-        Tickable.__init__(self, window_size, interval)  # type: ignore[call-arg]
+        Tickable.__init__(self, window_size, interval, logger)  # type: ignore[call-arg]
 
         self.paused = False
 
@@ -145,8 +149,9 @@ class JointLeader(panda.JointLeader, interfaces.TwoArmPandaInterface, Tickable):
         right_hostname: str,
         window_size: int = 1000,
         interval: int = 2000,
+        logger: logging.Logger | None = None,
     ) -> None:
-        Tickable.__init__(self, window_size, interval)  # type: ignore[call-arg]
+        Tickable.__init__(self, window_size, interval, logger)  # type: ignore[call-arg]
 
         q_idle = containers.TwoArmJointPositions(left=Q_IDLE_LEFT, right=Q_IDLE_RIGHT)
         q_teleop = containers.TwoArmJointPositions(
@@ -193,43 +198,3 @@ class JointLeader(panda.JointLeader, interfaces.TwoArmPandaInterface, Tickable):
 
     def get_sync_command(self) -> bytes:
         return self.get_command()
-
-
-def teleop() -> None:
-    """
-    PARTI teleoperation demo.
-    The PARTI system acts as a network client and teleoperation
-    leader that connects to a teleoperation server.
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--host", type=str, default="localhost")
-    parser.add_argument("-p", "--port", type=int, default=13701)
-    parser.add_argument("-gp", "--gamepad-port", type=int, default=13702)
-    parser.add_argument("--debug", action="store_true")
-    parser.add_argument(
-        "--mode",
-        choices=["joint", "cartesian"],
-        default="cartesian",
-        help="Specify teleoperation mode",
-    )
-    args = parser.parse_args()
-
-    if args.debug:
-        logging.basicConfig(level=logging.DEBUG, force=True)
-
-    left, right = utils.get_robot_hostnames()
-    leader: interfaces.TwoArmPandaInterface
-    if args.mode == "joint":
-        leader = JointLeader(left, right)
-    elif args.mode == "cartesian":
-        leader = CartesianLeader(left, right)
-
-    cli = client.Client(leader, args.host, args.port)
-    # gp_publisher = Publisher(args.gamepad_port, 30)
-    gamepad_handle = gamepad.GamepadHandle(cli, "localhost", args.gamepad_port)
-    logger = interfaces.TwoArmLogger(leader)
-    client.user_interface(cli)
-    cli.shutdown()
-    gamepad_handle.stop()
-    # gp_publisher.stop()
-    logger.stop()

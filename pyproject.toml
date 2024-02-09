@@ -52,7 +52,7 @@ docs = [
 ]
 
 [project.scripts]
-parti-teleop = "garmi_parti.parti:teleop"
+parti-teleop = "garmi_parti.launchers.parti_teleop:main"
 garmi-teleop = "garmi_parti.garmi:teleop"
 panda-teleop-leader = "garmi_parti.panda:teleop_leader"
 panda-teleop-follower = "garmi_parti.panda:teleop_follower"

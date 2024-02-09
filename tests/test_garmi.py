@@ -9,6 +9,7 @@ import pytest
 from numpy import testing
 
 from garmi_parti import garmi
+from garmi_parti.launchers import garmi_teleop
 from garmi_parti.teleoperation import containers, utils
 
 SYNC_CMD = pickle.dumps(
@@ -107,10 +108,10 @@ class TestGarmi(unittest.TestCase):
     @mock.patch("builtins.input", return_value="")
     def test_entrypoints(self, *args):
         del args
-        garmi.teleop()
+        garmi_teleop.main()
 
     @mock.patch.dict("os.environ", {}, clear=True)
     def test_entrypoints_raises(self):
         with pytest.raises(RuntimeError) as ctx:
-            garmi.teleop()
+            garmi_teleop.main()
         assert "PANDA_LEFT and PANDA_RIGHT" in str(ctx.value.args[0])

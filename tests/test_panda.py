@@ -9,13 +9,14 @@ import pytest
 from numpy import testing
 
 from garmi_parti import panda
+from garmi_parti.launchers import panda_teleop
 from garmi_parti.teleoperation import containers
 
 
 class TestPanda(unittest.TestCase):
     def test_cartesian_leader(self):
         panda_params = containers.TeleopParams(
-            "panda-host", q_idle=panda.Q_IDLE, q_teleop=panda.Q_TELEOP
+            "panda-host", q_idle=panda_teleop.Q_IDLE, q_teleop=panda_teleop.Q_TELEOP
         )
         leader = panda.CartesianLeader(panda_params)
         leader.pre_teleop()
@@ -33,7 +34,7 @@ class TestPanda(unittest.TestCase):
 
     def test_joint_leader(self):
         panda_params = containers.TeleopParams(
-            "panda-host", q_idle=panda.Q_IDLE, q_teleop=panda.Q_TELEOP
+            "panda-host", q_idle=panda_teleop.Q_IDLE, q_teleop=panda_teleop.Q_TELEOP
         )
         leader = panda.JointLeader(panda_params)
         leader.pre_teleop()
@@ -54,7 +55,7 @@ class TestPanda(unittest.TestCase):
 
     def test_cartesian_follower(self):
         panda_params = containers.TeleopParams(
-            "panda-host", q_idle=panda.Q_IDLE, q_teleop=panda.Q_TELEOP
+            "panda-host", q_idle=panda_teleop.Q_IDLE, q_teleop=panda_teleop.Q_TELEOP
         )
         follower = panda.CartesianFollower(panda_params, True)
         follower.pre_teleop()
@@ -74,7 +75,7 @@ class TestPanda(unittest.TestCase):
 
     def test_joint_follower(self):
         panda_params = containers.TeleopParams(
-            "panda-host", q_idle=panda.Q_IDLE, q_teleop=panda.Q_TELEOP
+            "panda-host", q_idle=panda_teleop.Q_IDLE, q_teleop=panda_teleop.Q_TELEOP
         )
         follower = panda.JointFollower(panda_params, True)
         follower.pre_teleop()
@@ -96,13 +97,13 @@ class TestPanda(unittest.TestCase):
     def test_entrypoints(self, *args):
         del args
         with pytest.raises(ConnectionRefusedError):
-            panda.teleop_leader()
+            panda_teleop.teleop_leader()
 
     @mock.patch.dict("os.environ", {}, clear=True)
     def test_entrypoints_raises(self):
         with pytest.raises(RuntimeError) as ctx:
-            panda.teleop_follower()
+            panda_teleop.teleop_follower()
         assert "environment variable PANDA" in str(ctx.value.args[0])
         with pytest.raises(RuntimeError) as ctx:
-            panda.teleop_leader()
+            panda_teleop.teleop_leader()
         assert "environment variable PANDA" in str(ctx.value.args[0])

@@ -4,26 +4,13 @@ Demos running on the Panda system.
 
 from __future__ import annotations
 
-import argparse
-import logging
-import os
 import pickle
 
 import numpy as np
 from panda_py import controllers
 from scipy.spatial import transform as tr
 
-from .teleoperation import client, containers, interfaces, server, utils
-
-logging.basicConfig(level=logging.INFO)
-_logger = logging.getLogger("panda")
-
-Q_IDLE = containers.JointPositions(
-    [0.0, -np.pi / 4, 0.0, -3 * np.pi / 4, 0.0, np.pi / 2, np.pi / 4]
-)
-Q_TELEOP = containers.JointPositions(
-    [0.0, -np.pi / 4, 0.0, -3 * np.pi / 4, 0.0, np.pi / 2, np.pi / 4]
-)
+from ..teleoperation import containers, interfaces, utils
 
 
 class CartesianLeader(interfaces.PandaInterface):
@@ -217,71 +204,3 @@ class JointFollower(interfaces.PandaInterface):
 
     def set_sync_command(self, command: bytes) -> None:
         self.move_arm(pickle.loads(command))
-
-
-def teleop_leader() -> None:
-    """
-    Panda teleoperation demo.
-    This Panda system acts as a network client and teleoperation
-    leader that connects to a teleoperation server (the follower).
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--host", type=str, default="localhost")
-    parser.add_argument("-p", "--port", type=int, default=13701)
-    parser.add_argument(
-        "--mode",
-        choices=["joint", "cartesian"],
-        default="joint",
-        help="Specify teleoperation mode",
-    )
-    args = parser.parse_args()
-
-    robot_host = os.environ.get("PANDA")
-    if robot_host is None:
-        raise RuntimeError(
-            "Please make sure the environment variable "
-            + "PANDA is set to the respective robot hostname."
-        )
-    damping = np.zeros(7)
-    leader: interfaces.PandaInterface
-    if args.mode == "joint":
-        leader = JointLeader(containers.TeleopParams(robot_host, damping=damping))
-    elif args.mode == "cartesian":
-        leader = CartesianLeader(containers.TeleopParams(robot_host, damping=damping))
-
-    cli = client.Client(leader, args.host, args.port)
-    client.user_interface(cli)
-    cli.shutdown()
-
-
-def teleop_follower() -> None:
-    """
-    Panda teleoperation demo.
-    The Panda system acts as a network server and teleoperation
-    follower that accepts connections from teleoperation clients.
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--port", type=int, default=13701)
-    parser.add_argument(
-        "--mode",
-        choices=["joint", "cartesian"],
-        default="joint",
-        help="Specify teleoperation mode",
-    )
-    args = parser.parse_args()
-
-    robot_host = os.environ.get("PANDA")
-    if robot_host is None:
-        raise RuntimeError(
-            "Please make sure the environment variable "
-            + "PANDA is set to the respective robot hostname."
-        )
-
-    follower: interfaces.PandaInterface
-    if args.mode == "joint":
-        follower = JointFollower(containers.TeleopParams(robot_host))
-    elif args.mode == "cartesian":
-        follower = CartesianFollower(containers.TeleopParams(robot_host))
-    srv = server.Server(follower, args.port)
-    server.user_interface(srv)
-    srv.shutdown()
