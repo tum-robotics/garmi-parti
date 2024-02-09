@@ -56,7 +56,15 @@ class TeleopAgent:
             right=containers.JointPositions(timestep.observation["right_joint_pos"]),
         )
         self.socket.send(pickle.dumps(joint_positions))
-        return np.zeros(23)
+        action = np.zeros(23)
+
+        # This controls the position of the object (x, y, theta)
+        action[-3:] = [0, 0, 0]
+        # This controls the orientation of the plane (w, x, y, z)
+        action[-7:-3] = tr.euler_to_quat(
+            [np.sin(timestep.observation["time"][0]) * 0.1, 0, 0]
+        )
+        return action
 
 
 class SceneEffector(effector.Effector):
@@ -85,7 +93,20 @@ class SceneEffector(effector.Effector):
                 np.float32,
                 np.full((7,), -10, dtype=np.float32),
                 np.full((7,), 10, dtype=np.float32),
-                "\t".join([f"{self.prefix}_{c}" for c in range(7)]),
+                "\t".join(
+                    [
+                        f"{self.prefix}_{n}"
+                        for n in [
+                            "plane_w",
+                            "plane_x",
+                            "plane_y",
+                            "plane_z",
+                            "object_x",
+                            "object_y",
+                            "object_theta",
+                        ]
+                    ]
+                ),
             )
         return self._spec
 
@@ -94,7 +115,6 @@ class SceneEffector(effector.Effector):
         return "scene"
 
     def set_control(self, physics: mjcf.Physics, command: np.ndarray) -> None:
-        del command
         update = True
         for contact in physics.data.contact:
             geom1_name = physics.model.id2name(contact.geom1, "geom")
@@ -108,11 +128,9 @@ class SceneEffector(effector.Effector):
                 break
         # only update if object is not in contact with element other than plane
         if update:
-            physics.bind(self._object).qpos[:] = [0, 0, 0]
-        # update plane as you see fit
-        physics.bind(self._plane).mocap_quat[:] = tr.euler_to_quat(
-            [np.sin(physics.time()) * 0.1, 0, 0]
-        )
+            physics.bind(self._object).qpos[:] = command[4:]
+        # always update plane
+        physics.bind(self._plane).mocap_quat[:] = command[:4]
 
 
 def make_gripper(name: str) -> params.GripperParams:
