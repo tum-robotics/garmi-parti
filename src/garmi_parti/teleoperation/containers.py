@@ -23,6 +23,15 @@ class JointPositions:
     positions: np.ndarray
 
 
+@dataclasses.dataclass
+class JointVelocities:
+    """
+    Joint velocity container.
+    """
+
+    velocites: np.ndarray
+
+
 def _default_stiffness() -> np.ndarray:
     return np.array([600, 600, 600, 600, 250, 150, 50])
 
@@ -180,6 +189,13 @@ class TwoArmWrench(TwoArmContainer[Wrench]):
 
 @dataclasses.dataclass
 class TwoArmJointPositions(TwoArmContainer[typing.Optional[JointPositions]]):
+    """
+    Two-arm joint positions container.
+    """
+
+
+@dataclasses.dataclass
+class TwoArmJointVelocities(TwoArmContainer[typing.Optional[JointVelocities]]):
     """
     Two-arm joint positions container.
     """
