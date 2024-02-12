@@ -52,38 +52,17 @@ class TestGarmi(unittest.TestCase):
         follower.pre_teleop()
         follower.start_teleop()
 
-        joint_positions = containers.TwoArmJointPositions(
-            left=containers.JointPositions(np.zeros(7)),
-            right=containers.JointPositions(np.zeros(7)),
+        joint_velocities = containers.TwoArmJointVelocities(
+            left=containers.JointVelocities(np.zeros(7)),
+            right=containers.JointVelocities(np.zeros(7)),
         )
         follower.set_sync_command(SYNC_CMD)
-        follower.set_command(pickle.dumps(joint_positions))
+        follower.set_command(pickle.dumps(joint_velocities))
         joint_torques: containers.TwoArmJointTorques = pickle.loads(
             follower.get_command()
         )
         self.assert_torques(joint_torques.left)
         self.assert_torques(joint_torques.right)
-        follower.open("left")
-        follower.close("left")
-        self.assert_gripper(follower.left.gripper, 2)
-        follower.open("right")
-        follower.close("right")
-        self.assert_gripper(follower.right.gripper, 4)
-        follower.pause()
-        follower.unpause()
-        follower.post_teleop()
-
-    def test_one_arm_joint_follower(self):
-        left = containers.TeleopParams("left-host")
-        right = containers.TeleopParams("right-host")
-        follower = garmi.OneArmJointFollower("left", left, right, True, True)
-        follower.pre_teleop()
-        follower.start_teleop()
-        joint_positions = containers.JointPositions(np.zeros(7))
-        follower.set_sync_command(ONE_ARM_SYNC_CMD)
-        follower.set_command(pickle.dumps(joint_positions))
-        joint_torques: containers.JointTorques = pickle.loads(follower.get_command())
-        self.assert_torques(joint_torques)
         follower.open("left")
         follower.close("left")
         self.assert_gripper(follower.left.gripper, 2)

@@ -78,8 +78,8 @@ class JointLeader(interfaces.PandaInterface):
 
     def _get_command(
         self, container: containers.TeleopContainer
-    ) -> containers.JointPositions:
-        return containers.JointPositions(container.arm.get_state().q)
+    ) -> containers.JointVelocities:
+        return containers.JointVelocities(container.arm.get_state().dq)
 
     def set_command(self, command: bytes) -> None:
         joint_torques: containers.JointTorques = pickle.loads(command)
@@ -95,14 +95,19 @@ class JointLeader(interfaces.PandaInterface):
             -container.params.gain_joint_torque * np.array(joint_torques.torques)
         )
 
+    def get_sync_command(self) -> bytes:
+        return pickle.dumps(self._get_sync_command(self.panda))
+
+    def _get_sync_command(
+        self, container: containers.TeleopContainer
+    ) -> containers.JointPositions:
+        return containers.JointPositions(container.arm.get_state().q)
+
     def pause(self) -> None:
         self.panda.arm.stop_controller()
 
     def unpause(self) -> None:
         self.start_teleop()
-
-    def get_sync_command(self) -> bytes:
-        return self.get_command()
 
 
 class CartesianFollower(interfaces.PandaInterface):
@@ -170,10 +175,9 @@ class JointFollower(interfaces.PandaInterface):
     def _pre_teleop(self, container: containers.TeleopContainer) -> None:
         super()._pre_teleop(container)
 
-        container.controller = controllers.JointPosition(
+        container.controller = controllers.IntegratedVelocity(
             stiffness=container.params.stiffness,
             damping=container.params.damping,
-            filter_coeff=container.params.filter_coeff,
         )
 
     def get_command(self) -> bytes:
@@ -185,16 +189,16 @@ class JointFollower(interfaces.PandaInterface):
         return containers.JointTorques(container.arm.get_state().tau_ext_hat_filtered)
 
     def set_command(self, command: bytes) -> None:
-        joint_positions: containers.JointPositions = pickle.loads(command)
-        self._set_command(joint_positions, self.panda)
+        joint_velocities: containers.JointVelocities = pickle.loads(command)
+        self._set_command(joint_velocities, self.panda)
 
     def _set_command(
         self,
-        joint_positions: containers.JointPositions,
+        joint_velocities: containers.JointVelocities,
         container: containers.TeleopContainer,
     ) -> None:
         self.fdir(container)
-        container.controller.set_control(joint_positions.positions)
+        container.controller.set_control(joint_velocities.velocites)
 
     def pause(self) -> None:
         self.panda.arm.stop_controller()

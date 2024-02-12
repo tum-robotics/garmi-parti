@@ -51,11 +51,7 @@ class TeleopAgent:
         Steps the agent.
         Receives a percept from the environment and returns an action.
         """
-        joint_positions = containers.TwoArmJointPositions(
-            left=containers.JointPositions(timestep.observation["left_joint_pos"]),
-            right=containers.JointPositions(timestep.observation["right_joint_pos"]),
-        )
-        self.socket.send(pickle.dumps(joint_positions))
+        self._comm(timestep)
         action = np.zeros(23)
 
         # This controls the position of the object (x, y, theta)
@@ -65,6 +61,17 @@ class TeleopAgent:
             [np.sin(timestep.observation["time"][0]) * 0.1, 0, 0]
         )
         return action
+
+    def _comm(self, timestep: dm_env.TimeStep) -> None:
+        joint_positions = containers.TwoArmJointPositions(
+            left=containers.JointPositions(timestep.observation["left_joint_pos"]),
+            right=containers.JointPositions(timestep.observation["right_joint_pos"]),
+        )
+        joint_velocities = containers.TwoArmJointVelocities(
+            left=containers.JointVelocities(timestep.observation["left_joint_vel"]),
+            right=containers.JointVelocities(timestep.observation["right_joint_vel"]),
+        )
+        self.socket.send(pickle.dumps((joint_positions, joint_velocities)))
 
 
 class SceneEffector(effector.Effector):

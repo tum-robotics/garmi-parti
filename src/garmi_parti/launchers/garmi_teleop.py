@@ -85,10 +85,6 @@ def main() -> None:
         follower = garmi.JointFollower(left_params, right_params, True, True)
     elif args.mode == "cartesian":
         follower = garmi.CartesianFollower(left_params, right_params, True, True)
-    elif args.mode == "one_arm_joint":
-        follower = garmi.OneArmJointFollower(
-            args.side, left_params, right_params, True, True
-        )
 
     srv = server.Server(follower, args.port)
     logger = interfaces.TwoArmLogger(follower)
