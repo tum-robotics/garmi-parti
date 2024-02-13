@@ -181,7 +181,7 @@ class JointLeader(panda.JointLeader, interfaces.TwoArmPandaInterface, Tickable):
 
     def get_command(self) -> bytes:
         return pickle.dumps(
-            containers.TwoArmJointPositions(
+            containers.TwoArmJointVelocities(
                 left=self._get_command(self.left), right=self._get_command(self.right)
             )
         )
@@ -197,4 +197,9 @@ class JointLeader(panda.JointLeader, interfaces.TwoArmPandaInterface, Tickable):
         self.right.arm.stop_controller()
 
     def get_sync_command(self) -> bytes:
-        return self.get_command()
+        return pickle.dumps(
+            containers.TwoArmJointPositions(
+                left=self._get_sync_command(self.left),
+                right=self._get_sync_command(self.right),
+            )
+        )

@@ -41,21 +41,21 @@ class TestParti(unittest.TestCase):
             right=containers.JointTorques(np.zeros(7)),
         )
         leader.set_command(pickle.dumps(cmd))
-        joint_positions: containers.TwoArmJointPositions = pickle.loads(
+        joint_velocities: containers.TwoArmJointVelocities = pickle.loads(
             leader.get_command()
         )
-        self.assert_joint_positions(joint_positions.left)
-        self.assert_joint_positions(joint_positions.right)
+        self.assert_joint_velocities(joint_velocities.left)
+        self.assert_joint_velocities(joint_velocities.right)
         leader.pause()
         leader.unpause()
         leader.post_teleop()
 
-    def assert_joint_positions(
-        self, joint_positions: containers.JointPositions | None
+    def assert_joint_velocities(
+        self, joint_velocities: containers.JointVelocities | None
     ) -> None:
-        assert joint_positions is not None
-        if joint_positions is not None:
-            testing.assert_allclose(joint_positions.positions, np.zeros(7))
+        assert joint_velocities is not None
+        if joint_velocities is not None:
+            testing.assert_allclose(joint_velocities.velocites, np.zeros(7))
 
     def assert_displacement(self, displacement: containers.Displacement) -> None:
         testing.assert_allclose(displacement.linear, np.zeros(3))
