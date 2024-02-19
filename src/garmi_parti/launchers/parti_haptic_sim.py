@@ -49,6 +49,12 @@ def main() -> None:
     parser.add_argument("--sim-only", action="store_true")
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--testing", action="store_true")
+    parser.add_argument(
+        "--deactivate-left", action="store_true", help="deactivate left robot"
+    )
+    parser.add_argument(
+        "--deactivate-right", action="store_true", help="deactivate right robot"
+    )
     args = parser.parse_args()
 
     if args.debug:
@@ -56,6 +62,10 @@ def main() -> None:
 
     if args.sim_only:
         left_hostname = None
+        right_hostname = None
+    if args.deactivate_left:
+        left_hostname = None
+    if args.deactivate_right:
         right_hostname = None
 
     arena = composer.Arena(xml_path=XML_PATH)
