@@ -127,7 +127,10 @@ class SceneEffector(effector.Effector):
             geom1_name = physics.model.id2name(contact.geom1, "geom")
             geom2_name = physics.model.id2name(contact.geom2, "geom")
             if (
-                (geom1_name == "object" or geom2_name == "object")
+                (
+                    geom1_name in ["object_1", "object_2"]
+                    or geom2_name in ["object_1", "object_2"]
+                )
                 and geom1_name != "plane"
                 and geom2_name != "plane"
             ):
