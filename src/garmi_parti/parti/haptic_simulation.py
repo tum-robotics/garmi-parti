@@ -65,11 +65,14 @@ class TeleopAgent:
         action = np.zeros(23)
 
         # This controls the position of the object (x, y, theta)
-        action[-3:] = [0, 0, 0]
+        action[-3:] = [self.obj_pose.pose.position.x, 
+                       self.obj_pose.pose.position.y,
+                       self.obj_pose.pose.position.z ]
         # This controls the orientation of the plane (w, x, y, z)
-        action[-7:-3] = tr.euler_to_quat(
-            [np.sin(timestep.observation["time"][0]) * 0.1, 0, 0]
-        )
+        action[-7:-3] = [self.plane_pose.real,
+                         self.plane_pose.imaginary[0], 
+                         self.plane_pose.imaginary[1],
+                         self.plane_pose.imaginary[2] ]
         return action
 
     def plane_callback(self, pose):
