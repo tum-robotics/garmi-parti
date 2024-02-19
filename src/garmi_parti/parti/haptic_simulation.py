@@ -10,6 +10,7 @@ import threading
 import dm_env
 import numpy as np
 import panda_py
+import rospy
 import zmq
 from dm_control import composer, mjcf
 from dm_env import specs
@@ -17,6 +18,8 @@ from dm_robotics.moma import effector
 from dm_robotics.panda import gripper
 from dm_robotics.panda import parameters as params
 from dm_robotics.transformations import transformations as tr
+from geometry_msgs.msg import Pose, PoseStamped
+from pyquaternion import Quaternion
 
 from ..teleoperation import containers
 
@@ -38,6 +41,13 @@ class TeleopAgent:
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PUB)
         self.socket.bind("ipc:///tmp/parti-haptic-sim")
+        rospy.init_node("listener", anonymous=True)
+        self.plane_pose = Quaternion()
+        self.obj_pose = Pose()
+        sub_plane = rospy.Subscriber("/detect_plane/pose", Pose, self.plane_callback)
+        sub_obj = rospy.Subscriber(
+            "/icg_tracker_1/pose", PoseStamped, self.obj_callback
+        )
 
     def shutdown(self) -> None:
         """
@@ -61,6 +71,24 @@ class TeleopAgent:
             [np.sin(timestep.observation["time"][0]) * 0.1, 0, 0]
         )
         return action
+
+    def plane_callback(self, pose):
+        camera_trans = np.array([0.21323, -0.363705, 0.215217])
+        camera_orient = Quaternion(
+            0.507675, -0.86154, 0.000303674, -0.00397619
+        )  # w,x,y,z
+        plane_pose = Quaternion(
+            pose.orientation.w,
+            pose.orientation.x,
+            pose.orientation.y,
+            pose.orientation.z,
+        )
+        self.plane_pose = camera_orient * plane_pose
+        # print(pose)
+
+    def obj_callback(self, pose):
+        self.obj_pose = pose
+        # print(pose)
 
     def _comm(self, timestep: dm_env.TimeStep) -> None:
         joint_positions = containers.TwoArmJointPositions(
