@@ -10,7 +10,12 @@ import threading
 import dm_env
 import numpy as np
 import panda_py
-import rospy
+
+# from geometry_msgs.msg import Pose, PoseStamped
+# from pyquaternion import Quaternion
+import roslibpy
+
+# import rospy
 import zmq
 from dm_control import composer, mjcf
 from dm_env import specs
@@ -18,8 +23,6 @@ from dm_robotics.moma import effector
 from dm_robotics.panda import gripper
 from dm_robotics.panda import parameters as params
 from dm_robotics.transformations import transformations as tr
-from geometry_msgs.msg import Pose, PoseStamped
-from pyquaternion import Quaternion
 
 from ..teleoperation import containers
 
@@ -33,7 +36,13 @@ class TeleopAgent:
     """
 
     def __init__(
-        self, arena: composer.Arena, spec: specs.BoundedArray, action: np.ndarray
+        self,
+        arena: composer.Arena,
+        spec: specs.BoundedArray,
+        action: np.ndarray,
+        use_ros: bool,
+        ros_hostname: str = "localhost",
+        rosbridge_port: int = 9090,
     ) -> None:
         self._spec = spec
         self._arena: composer.Arena = arena
@@ -41,13 +50,24 @@ class TeleopAgent:
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PUB)
         self.socket.bind("ipc:///tmp/parti-haptic-sim")
-        rospy.init_node("listener", anonymous=True)
-        self.plane_pose = Quaternion()
-        self.obj_pose = Pose()
-        sub_plane = rospy.Subscriber("/detect_plane/pose", Pose, self.plane_callback)
-        sub_obj = rospy.Subscriber(
-            "/icg_tracker_1/pose", PoseStamped, self.obj_callback
-        )
+
+        self._camera_pos = np.array([0.21323, -0.363705, 0.215217])
+        self._camera_quat = np.array([0.507675, -0.86154, 0.000303674, -0.00397619])
+
+        self._object_position = np.array([-0.06, 0, 0])
+        self._plane_declination = 0
+
+        if use_ros:
+            client = roslibpy.Ros(host=ros_hostname, port=rosbridge_port)
+            client.run()
+            listener = roslibpy.Topic(
+                client, "/icg_tracker_1/pose", "geometry_msgs/PoseStamped"
+            )
+            listener.subscribe(self._object_callback)
+            listener_2 = roslibpy.Topic(
+                client, "/detect_plane/pose", "geometry_msgs/Pose"
+            )
+            listener_2.subscribe(self._plane_callback)
 
     def shutdown(self) -> None:
         """
@@ -62,35 +82,35 @@ class TeleopAgent:
         Receives a percept from the environment and returns an action.
         """
         self._comm(timestep)
-        action = np.zeros(23)
+        action = np.zeros(20)
 
-        # This controls the position of the object (x, y, theta)
-        action[-3:] = [self.obj_pose.pose.position.x, 
-                       self.obj_pose.pose.position.y,
-                       self.obj_pose.pose.position.z ]
-        # This controls the orientation of the plane (w, x, y, z)
-        action[-7:-3] = [self.plane_pose.real,
-                         self.plane_pose.imaginary[0], 
-                         self.plane_pose.imaginary[1],
-                         self.plane_pose.imaginary[2] ]
+        # # This controls the position of the object (x, y, theta)
+        action[-3:] = self._object_position
+        # This controls the declination of the plane
+        action[-4] = self._plane_declination
         return action
 
-    def plane_callback(self, pose):
-        camera_trans = np.array([0.21323, -0.363705, 0.215217])
-        camera_orient = Quaternion(
-            0.507675, -0.86154, 0.000303674, -0.00397619
-        )  # w,x,y,z
-        plane_pose = Quaternion(
-            pose.orientation.w,
-            pose.orientation.x,
-            pose.orientation.y,
-            pose.orientation.z,
-        )
-        self.plane_pose = camera_orient * plane_pose
-        # print(pose)
+    def _plane_callback(self, message: dict) -> None:
+        local_normal = [
+            message["position"]["x"],
+            message["position"]["y"],
+            message["position"]["z"],
+        ]
+        global_normal = tr.quat_rotate(self._camera_quat, local_normal)
+        local_normal = tr.quat_between_vectors([0, 0, 1], global_normal)
+        self._plane_declination = tr.quat_to_euler(local_normal)[0]
 
-    def obj_callback(self, pose):
-        self.obj_pose = pose
+    def _object_callback(self, message):
+        pass
+        # pos = [0, -0.205, 0.5]
+        # quat = [0.5, 0.5, 0.5, 0.5]
+        # T = tr.pos_quat_to_hmat(pos, quat)
+        # T_inv = tr.hmat_inv(T)
+        # object_pos = np.array([message['pose']['position']['x'], message['pose']['position']['y'], message['pose']['position']['z'], 1])
+        # print("global", T_inv@object_pos)
+        # print("right base", object_pos)
+        # tr.hmat_inv
+        # self.obj_pose = message
         # print(pose)
 
     def _comm(self, timestep: dm_env.TimeStep) -> None:
@@ -127,18 +147,15 @@ class SceneEffector(effector.Effector):
         del physics
         if self._spec is None:
             self._spec = specs.BoundedArray(
-                (7,),
+                (4,),
                 np.float32,
-                np.full((7,), -10, dtype=np.float32),
-                np.full((7,), 10, dtype=np.float32),
+                np.full((4,), -10, dtype=np.float32),
+                np.full((4,), 10, dtype=np.float32),
                 "\t".join(
                     [
                         f"{self.prefix}_{n}"
                         for n in [
-                            "plane_w",
-                            "plane_x",
-                            "plane_y",
-                            "plane_z",
+                            "plane",
                             "object_x",
                             "object_y",
                             "object_theta",
@@ -154,6 +171,7 @@ class SceneEffector(effector.Effector):
 
     def set_control(self, physics: mjcf.Physics, command: np.ndarray) -> None:
         update = True
+        allowed_collision = ["plane", "side_a", "side_b", "side_c", "side_d"]
         for contact in physics.data.contact:
             geom1_name = physics.model.id2name(contact.geom1, "geom")
             geom2_name = physics.model.id2name(contact.geom2, "geom")
@@ -162,16 +180,19 @@ class SceneEffector(effector.Effector):
                     geom1_name in ["object_1", "object_2"]
                     or geom2_name in ["object_1", "object_2"]
                 )
-                and geom1_name != "plane"
-                and geom2_name != "plane"
+                and geom1_name not in allowed_collision
+                and geom2_name not in allowed_collision
             ):
                 update = False
                 break
-        # only update if object is not in contact with element other than plane
+        # only update scene if object is not in contact with element other than plane
         if update:
-            physics.bind(self._object).qpos[:] = command[4:]
-        # always update plane
-        physics.bind(self._plane).mocap_quat[:] = command[:4]
+            # update object
+            physics.bind(self._object).qpos[:] = command[1:]
+            physics.bind(self._object).qvel[:] = np.zeros(3)
+            # update plane
+            physics.bind(self._plane).qpos[:] = command[0]
+            physics.bind(self._object).qvel[:] = 0
 
 
 def make_gripper(name: str) -> params.GripperParams:
