@@ -55,6 +55,15 @@ def main() -> None:
     parser.add_argument(
         "--deactivate-right", action="store_true", help="deactivate right robot"
     )
+    parser.add_argument(
+        "--use-ros",
+        action="store_true",
+        help="use rosbridge connection to update scene.",
+    )
+    parser.add_argument(
+        "--ros-hostname", type=str, help="ROS hostname", default="localhost"
+    )
+    parser.add_argument("--ros-port", type=int, help="rosbridge port", default=9090)
     args = parser.parse_args()
 
     if args.debug:
@@ -71,7 +80,7 @@ def main() -> None:
     arena = composer.Arena(xml_path=XML_PATH)
     left_frame = arena.mjcf_model.find("site", "left")
     right_frame = arena.mjcf_model.find("site", "right")
-    plane = arena.mjcf_model.find("body", "plane")
+    plane = arena.mjcf_model.find("joint", "plane")
     obj = [arena.mjcf_model.find("joint", jn) for jn in ["x", "y", "theta"]]
 
     left = params.RobotParams(
@@ -103,6 +112,9 @@ def main() -> None:
             env.task.arena,
             env.action_spec(),
             np.r_[Q_TELEOP_LEFT.positions, Q_TELEOP_RIGHT.positions],
+            args.use_ros,
+            args.ros_hostname,
+            args.ros_port,
         )
         if not args.testing:
             app = dmr_panda_utils.ApplicationWithPlot()
