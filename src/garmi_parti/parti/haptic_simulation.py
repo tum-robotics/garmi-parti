@@ -54,7 +54,7 @@ class TeleopAgent:
         self._camera_pos = np.array([0.21323, -0.363705, 0.215217])
         self._camera_quat = np.array([0.507675, -0.86154, 0.000303674, -0.00397619])
 
-        self._object_position = np.array([-0.06, 0, 0])
+        self._object_qpos = np.array([-0.06, 0, 0])
         self._plane_declination = 0
 
         if use_ros:
@@ -83,9 +83,11 @@ class TeleopAgent:
         """
         self._comm(timestep)
         action = np.zeros(20)
+        action[7] = 1
+        action[15] = 1
 
         # # This controls the position of the object (x, y, theta)
-        action[-3:] = self._object_position
+        action[-3:] = self._object_qpos
         # This controls the declination of the plane
         action[-4] = self._plane_declination
         return action
@@ -97,21 +99,36 @@ class TeleopAgent:
             message["position"]["z"],
         ]
         global_normal = tr.quat_rotate(self._camera_quat, local_normal)
+        # TODO this is probably in right arm base frame for two-arm system
+        # this assumes camera frame to be in world frame
         local_normal = tr.quat_between_vectors([0, 0, 1], global_normal)
         self._plane_declination = tr.quat_to_euler(local_normal)[0]
 
     def _object_callback(self, message):
-        pass
-        # pos = [0, -0.205, 0.5]
-        # quat = [0.5, 0.5, 0.5, 0.5]
-        # T = tr.pos_quat_to_hmat(pos, quat)
-        # T_inv = tr.hmat_inv(T)
-        # object_pos = np.array([message['pose']['position']['x'], message['pose']['position']['y'], message['pose']['position']['z'], 1])
-        # print("global", T_inv@object_pos)
-        # print("right base", object_pos)
-        # tr.hmat_inv
-        # self.obj_pose = message
-        # print(pose)
+        # right arm base frame in world frame
+        T_0_right0 = tr.pos_quat_to_hmat([0, -0.24, 0.5], [0.5, 0.5, 0.5, 0.5])
+        # object in right arm base frame
+        T_right0_object = tr.pos_quat_to_hmat(
+            [
+                message["pose"]["position"]["x"],
+                message["pose"]["position"]["y"],
+                message["pose"]["position"]["z"],
+            ],
+            [
+                message["pose"]["orientation"]["w"],
+                message["pose"]["orientation"]["x"],
+                message["pose"]["orientation"]["y"],
+                message["pose"]["orientation"]["z"],
+            ],
+        )
+        # plane frame in world frame
+        T_0_plane = tr.pos_quat_to_hmat([1, 0, 0.3], [1, 0, 0, 0])
+        # world frame in plane frame
+        T_plane_0 = tr.hmat_inv(T_0_plane)
+
+        # object in plane frame
+        poseuler = tr.hmat_to_poseuler(T_plane_0 @ T_0_right0 @ T_right0_object, "XYZ")
+        self._object_qpos = np.array([poseuler[0], poseuler[1], poseuler[5]])
 
     def _comm(self, timestep: dm_env.TimeStep) -> None:
         joint_positions = containers.TwoArmJointPositions(
@@ -192,7 +209,7 @@ class SceneEffector(effector.Effector):
             physics.bind(self._object).qvel[:] = np.zeros(3)
             # update plane
             physics.bind(self._plane).qpos[:] = command[0]
-            physics.bind(self._object).qvel[:] = 0
+            physics.bind(self._plane).qvel[:] = 0
 
 
 def make_gripper(name: str) -> params.GripperParams:
