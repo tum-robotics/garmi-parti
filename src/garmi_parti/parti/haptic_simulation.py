@@ -31,6 +31,8 @@ T_0_plane = tr.pos_quat_to_hmat([.845, 0.012, .34], [1, 0, 0, 0])
 # world frame in plane frame
 T_plane_0 = tr.hmat_inv(T_0_plane)
 
+deadtime = 1.0
+
 
 class TeleopAgent:
     """Teleoperation agent for MMT.
@@ -147,6 +149,7 @@ class SceneEffector(effector.Effector):
         self._plane = plane
         self._object = obj
         self._spec = None
+        self._deadtime = 0
 
     def close(self) -> None:
         pass
@@ -183,6 +186,8 @@ class SceneEffector(effector.Effector):
         return "scene"
 
     def set_control(self, physics: mjcf.Physics, command: np.ndarray) -> None:
+        if physics.time() - self._deadtime < deadtime:
+            return
         update = True
         allowed_collision = ["plane", "side_a", "side_b", "side_c", "side_d"]
         for contact in physics.data.contact:
@@ -197,6 +202,7 @@ class SceneEffector(effector.Effector):
                 and geom2_name not in allowed_collision
             ):
                 update = False
+                self._deadtime = physics.time()
                 break
         # only update scene if object is not in contact with element other than plane
         if update:
