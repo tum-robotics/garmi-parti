@@ -12,13 +12,11 @@
     <light directional='true' diffuse='.7 .7 .7' pos='1 .1 2' dir='0 -.1 -2' specular='.3 .3 .3' castshadow='true'/>
     <body pos=".845 0.012 .34" name="plane">
       <geom name="plane" type="box" pos="0 0 -.01" size=".1 .2 .01" rgba=".2 .2 .2 1" />
-      <body><body>
       <geom name="side_a" type="box" pos=".0985 0 .005" size=".0015 .2 .005" rgba=".2 .2 .2 1" />
       <geom name="side_b" type="box" pos="-.0985 0 .005" size=".0015 .2 .005" rgba=".2 .2 .2 1" />
       <geom name="side_c" type="box" pos="0 .1985 .005" size=".097 .0015 .005" rgba=".2 .2 .2 1" />
       <geom name="side_d" type="box" pos="0 -.1985 .005" size=".097 .0015 .005" rgba=".2 .2 .2 1" />
-      </body></body>
-      <joint name="plane" type="hinge" axis="1 0 0" range="-0.2617 0.2617" />
+      <joint name="plane" type="hinge" axis="1 0 0" pos="0 0 -0.0225" range="-0.2617 0.2617" />
       <body name="object">
         <joint name="x" type="slide" axis="1 0 0" />
         <joint name="y" type="slide" axis="0 1 0" />
