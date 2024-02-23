@@ -22,7 +22,7 @@ from dm_robotics.panda import parameters as params
 from dm_robotics.panda import utils as dmr_panda_utils
 
 from ..parti import haptic_simulation as sim
-from ..teleoperation import containers
+from ..teleoperation import containers, utils
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger("parti_haptic_sim")
@@ -65,10 +65,10 @@ def main() -> None:
     )
     parser.add_argument("--ros-port", type=int, help="rosbridge port", default=9090)
     args = parser.parse_args()
+    left_hostname, right_hostname = utils.get_robot_hostnames()
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG, force=True)
-
     if args.sim_only:
         left_hostname = None
         right_hostname = None
@@ -86,6 +86,7 @@ def main() -> None:
     left = params.RobotParams(
         robot_ip=left_hostname,
         name="left",
+        joint_damping=[50,0,0,0,0,0,0],
         has_hand=False,
         joint_positions=Q_TELEOP_LEFT.positions,
         attach_site=left_frame,
@@ -95,6 +96,7 @@ def main() -> None:
     right = params.RobotParams(
         robot_ip=right_hostname,
         name="right",
+        joint_damping=[50,0,0,0,0,0,0],
         has_hand=False,
         joint_positions=Q_TELEOP_RIGHT.positions,
         attach_site=right_frame,
