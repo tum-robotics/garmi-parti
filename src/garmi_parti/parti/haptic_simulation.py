@@ -6,16 +6,11 @@ from __future__ import annotations
 
 import pickle
 import threading
-
+import spatialmath
 import dm_env
 import numpy as np
 import panda_py
-
-# from geometry_msgs.msg import Pose, PoseStamped
-# from pyquaternion import Quaternion
 import roslibpy
-
-# import rospy
 import zmq
 from dm_control import composer, mjcf
 from dm_env import specs
@@ -25,6 +20,16 @@ from dm_robotics.panda import parameters as params
 from dm_robotics.transformations import transformations as tr
 
 from ..teleoperation import containers
+
+
+# right arm base frame in world frame
+T_0_right0 = tr.pos_quat_to_hmat([0, -0.24, 0.5], [0.5, 0.5, 0.5, 0.5])
+
+# plane frame in world frame
+T_0_plane = tr.pos_quat_to_hmat([.845, 0.012, .34], [1, 0, 0, 0])
+
+# world frame in plane frame
+T_plane_0 = tr.hmat_inv(T_0_plane)
 
 
 class TeleopAgent:
@@ -51,10 +56,8 @@ class TeleopAgent:
         self.socket = self.context.socket(zmq.PUB)
         self.socket.bind("ipc:///tmp/parti-haptic-sim")
 
-        self._camera_pos = np.array([0.21323, -0.363705, 0.215217])
-        self._camera_quat = np.array([0.507675, -0.86154, 0.000303674, -0.00397619])
-
         self._object_qpos = np.array([-0.06, 0, 0])
+        self._object_qpos_offset = np.array([.018, 0, 0])
         self._plane_declination = 0
 
         if use_ros:
@@ -83,30 +86,25 @@ class TeleopAgent:
         """
         self._comm(timestep)
         action = np.zeros(20)
-        action[7] = 1
-        action[15] = 1
 
         # # This controls the position of the object (x, y, theta)
-        action[-3:] = self._object_qpos
+        action[-3:] = self._object_qpos + self._object_qpos_offset
         # This controls the declination of the plane
         action[-4] = self._plane_declination
         return action
 
     def _plane_callback(self, message: dict) -> None:
-        local_normal = [
+        normal = [
             message["position"]["x"],
             message["position"]["y"],
             message["position"]["z"],
         ]
-        global_normal = tr.quat_rotate(self._camera_quat, local_normal)
-        # TODO this is probably in right arm base frame for two-arm system
-        # this assumes camera frame to be in world frame
-        local_normal = tr.quat_between_vectors([0, 0, 1], global_normal)
-        self._plane_declination = tr.quat_to_euler(local_normal)[0]
+        global_normal = T_0_right0[:3,:3]@normal
+        orientation = tr.quat_between_vectors([0, 0, 1], global_normal[:3])
+
+        self._plane_declination = tr.quat_to_euler(orientation)[0]
 
     def _object_callback(self, message):
-        # right arm base frame in world frame
-        T_0_right0 = tr.pos_quat_to_hmat([0, -0.24, 0.5], [0.5, 0.5, 0.5, 0.5])
         # object in right arm base frame
         T_right0_object = tr.pos_quat_to_hmat(
             [
@@ -121,14 +119,12 @@ class TeleopAgent:
                 message["pose"]["orientation"]["z"],
             ],
         )
-        # plane frame in world frame
-        T_0_plane = tr.pos_quat_to_hmat([1, 0, 0.3], [1, 0, 0, 0])
-        # world frame in plane frame
-        T_plane_0 = tr.hmat_inv(T_0_plane)
-
         # object in plane frame
-        poseuler = tr.hmat_to_poseuler(T_plane_0 @ T_0_right0 @ T_right0_object, "XYZ")
-        self._object_qpos = np.array([poseuler[0], poseuler[1], poseuler[5]])
+        T_plane_object = T_plane_0 @ T_0_right0 @ T_right0_object
+        
+        theta = spatialmath.SO3(T_plane_object[:3,:3]).rpy()
+        theta = theta[2]
+        self._object_qpos = np.array([T_plane_object[0,3], T_plane_object[1,3], theta])
 
     def _comm(self, timestep: dm_env.TimeStep) -> None:
         joint_positions = containers.TwoArmJointPositions(
