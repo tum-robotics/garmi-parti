@@ -33,6 +33,7 @@ dependencies = [
   "dm-robotics-panda",
   "pyzmq",
   "roslibpy",
+  "spatialmath",
 ]
 
 [project.optional-dependencies]
