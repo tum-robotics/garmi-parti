@@ -65,6 +65,8 @@ def main() -> None:
     )
     parser.add_argument("--ros-port", type=int, help="rosbridge port", default=9090)
     args = parser.parse_args()
+    left_hostname: str | None
+    right_hostname: str | None
     left_hostname, right_hostname = utils.get_robot_hostnames()
 
     if args.debug:
@@ -86,7 +88,7 @@ def main() -> None:
     left = params.RobotParams(
         robot_ip=left_hostname,
         name="left",
-        joint_damping=[50,0,0,0,0,0,0],
+        joint_damping=[50, 0, 0, 0, 0, 0, 0],
         has_hand=False,
         joint_positions=Q_TELEOP_LEFT.positions,
         attach_site=left_frame,
@@ -96,7 +98,7 @@ def main() -> None:
     right = params.RobotParams(
         robot_ip=right_hostname,
         name="right",
-        joint_damping=[50,0,0,0,0,0,0],
+        joint_damping=[50, 0, 0, 0, 0, 0, 0],
         has_hand=False,
         joint_positions=Q_TELEOP_RIGHT.positions,
         attach_site=right_frame,

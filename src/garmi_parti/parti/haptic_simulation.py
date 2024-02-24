@@ -6,11 +6,12 @@ from __future__ import annotations
 
 import pickle
 import threading
-import spatialmath
+
 import dm_env
 import numpy as np
 import panda_py
 import roslibpy
+import spatialmath
 import zmq
 from dm_control import composer, mjcf
 from dm_env import specs
@@ -21,12 +22,11 @@ from dm_robotics.transformations import transformations as tr
 
 from ..teleoperation import containers
 
-
 # right arm base frame in world frame
 T_0_right0 = tr.pos_quat_to_hmat([0, -0.24, 0.5], [0.5, 0.5, 0.5, 0.5])
 
 # plane frame in world frame
-T_0_plane = tr.pos_quat_to_hmat([.845, 0.012, .34], [1, 0, 0, 0])
+T_0_plane = tr.pos_quat_to_hmat([0.845, 0.012, 0.34], [1, 0, 0, 0])
 
 # world frame in plane frame
 T_plane_0 = tr.hmat_inv(T_0_plane)
@@ -59,7 +59,7 @@ class TeleopAgent:
         self.socket.bind("ipc:///tmp/parti-haptic-sim")
 
         self._object_qpos = np.array([-0.06, 0, 0])
-        self._object_qpos_offset = np.array([.018, 0, 0])
+        self._object_qpos_offset = np.array([0.018, 0, 0])
         self._plane_declination = 0
 
         if use_ros:
@@ -101,12 +101,12 @@ class TeleopAgent:
             message["position"]["y"],
             message["position"]["z"],
         ]
-        global_normal = T_0_right0[:3,:3]@normal
+        global_normal = T_0_right0[:3, :3] @ normal
         orientation = tr.quat_between_vectors([0, 0, 1], global_normal[:3])
 
         self._plane_declination = tr.quat_to_euler(orientation)[0]
 
-    def _object_callback(self, message):
+    def _object_callback(self, message: dict) -> None:
         # object in right arm base frame
         T_right0_object = tr.pos_quat_to_hmat(
             [
@@ -123,10 +123,12 @@ class TeleopAgent:
         )
         # object in plane frame
         T_plane_object = T_plane_0 @ T_0_right0 @ T_right0_object
-        
-        theta = spatialmath.SO3(T_plane_object[:3,:3]).rpy()
+
+        theta = spatialmath.SO3(T_plane_object[:3, :3]).rpy()
         theta = theta[2]
-        self._object_qpos = np.array([T_plane_object[0,3], T_plane_object[1,3], theta])
+        self._object_qpos = np.array(
+            [T_plane_object[0, 3], T_plane_object[1, 3], theta]
+        )
 
     def _comm(self, timestep: dm_env.TimeStep) -> None:
         joint_positions = containers.TwoArmJointPositions(
