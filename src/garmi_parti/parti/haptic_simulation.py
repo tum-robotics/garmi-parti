@@ -108,7 +108,7 @@ class TeleopAgent:
 
     def _object_callback(self, message: dict) -> None:
         # object in right arm base frame
-        T_right0_object = tr.pos_quat_to_hmat( # pylint: disable=invalid-name
+        T_right0_object = tr.pos_quat_to_hmat(  # pylint: disable=invalid-name
             [
                 message["pose"]["position"]["x"],
                 message["pose"]["position"]["y"],
@@ -122,7 +122,7 @@ class TeleopAgent:
             ],
         )
         # object in plane frame
-        T_plane_object = T_plane_0 @ T_0_right0 @ T_right0_object # pylint: disable=invalid-name
+        T_plane_object = T_plane_0 @ T_0_right0 @ T_right0_object  # pylint: disable=invalid-name
 
         theta = spatialmath.SO3(T_plane_object[:3, :3]).rpy()
         theta = theta[2]
