@@ -31,7 +31,7 @@ T_0_plane = tr.pos_quat_to_hmat([0.845, 0.012, 0.34], [1, 0, 0, 0])
 # world frame in plane frame
 T_plane_0 = tr.hmat_inv(T_0_plane)
 
-deadtime = 1.0
+DEADTIME = 1.0
 
 
 class TeleopAgent:
@@ -108,7 +108,7 @@ class TeleopAgent:
 
     def _object_callback(self, message: dict) -> None:
         # object in right arm base frame
-        T_right0_object = tr.pos_quat_to_hmat(
+        T_right0_object = tr.pos_quat_to_hmat( # pylint: disable=invalid-name
             [
                 message["pose"]["position"]["x"],
                 message["pose"]["position"]["y"],
@@ -122,7 +122,7 @@ class TeleopAgent:
             ],
         )
         # object in plane frame
-        T_plane_object = T_plane_0 @ T_0_right0 @ T_right0_object
+        T_plane_object = T_plane_0 @ T_0_right0 @ T_right0_object # pylint: disable=invalid-name
 
         theta = spatialmath.SO3(T_plane_object[:3, :3]).rpy()
         theta = theta[2]
@@ -188,7 +188,7 @@ class SceneEffector(effector.Effector):
         return "scene"
 
     def set_control(self, physics: mjcf.Physics, command: np.ndarray) -> None:
-        if physics.time() - self._deadtime < deadtime:
+        if physics.time() - self._deadtime < DEADTIME:
             return
         update = True
         allowed_collision = ["plane", "side_a", "side_b", "side_c", "side_d"]
