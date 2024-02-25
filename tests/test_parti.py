@@ -41,18 +41,14 @@ class TestParti(unittest.TestCase):
             right=containers.JointTorques(np.zeros(7)),
         )
         leader.set_command(pickle.dumps(cmd))
-        joint_states: containers.TwoArmJointStates = pickle.loads(
-            leader.get_command()
-        )
+        joint_states: containers.TwoArmJointStates = pickle.loads(leader.get_command())
         self.assert_joint_states(joint_states.left)
         self.assert_joint_states(joint_states.right)
         leader.pause()
         leader.unpause()
         leader.post_teleop()
 
-    def assert_joint_states(
-        self, joint_states: containers.JointStates | None
-    ) -> None:
+    def assert_joint_states(self, joint_states: containers.JointStates | None) -> None:
         assert joint_states is not None
         if joint_states.dq is not None:
             testing.assert_allclose(joint_states.dq.velocites, np.zeros(7))
