@@ -69,6 +69,8 @@ class Leader(interfaces.Interface):
         pass
 
     def get_sync_command(self) -> bytes:
+        if self.joint_states.left is None or self.joint_states.right is None:
+            return b""
         return pickle.dumps(
             containers.TwoArmJointPositions(
                 left=self.joint_states.left.q, right=self.joint_states.right.q
