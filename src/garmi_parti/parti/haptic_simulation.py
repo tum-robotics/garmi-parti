@@ -131,16 +131,15 @@ class TeleopAgent:
         )
 
     def _comm(self, timestep: dm_env.TimeStep) -> None:
-        joint_positions = containers.TwoArmJointPositions(
-            left=containers.JointPositions(timestep.observation["left_joint_pos"]),
-            right=containers.JointPositions(timestep.observation["right_joint_pos"]),
-        )
-        joint_velocities = containers.TwoArmJointVelocities(
-            left=containers.JointVelocities(timestep.observation["left_joint_vel"]),
-            right=containers.JointVelocities(timestep.observation["right_joint_vel"]),
-        )
-        joint_states = containers.JointStates(
-            q=joint_positions, dq=joint_velocities
+        joint_states = containers.TwoArmJointStates(
+            left=containers.JointStates(
+                q=containers.JointPositions(timestep.observation["left_joint_pos"]),
+                dq=containers.JointVelocities(timestep.observation["left_joint_vel"]),
+            ),
+            right=containers.JointStates(
+                q=containers.JointPositions(timestep.observation["right_joint_pos"]),
+                dq=containers.JointVelocities(timestep.observation["right_joint_vel"]),
+            ),
         )
         self.socket.send(pickle.dumps(joint_states))
 
