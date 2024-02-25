@@ -52,12 +52,18 @@ class TestGarmi(unittest.TestCase):
         follower.pre_teleop()
         follower.start_teleop()
 
-        joint_velocities = containers.TwoArmJointVelocities(
-            left=containers.JointVelocities(np.zeros(7)),
-            right=containers.JointVelocities(np.zeros(7)),
+        joint_states = containers.TwoArmJointStates(
+            left=containers.JointStates(
+                q=containers.JointPositions(np.zeros(7)),
+                dq=containers.JointVelocities(np.zeros(7)),
+            ),
+            right=containers.JointStates(
+                q=containers.JointPositions(np.zeros(7)),
+                dq=containers.JointVelocities(np.zeros(7)),
+            ),
         )
         follower.set_sync_command(SYNC_CMD)
-        follower.set_command(pickle.dumps(joint_velocities))
+        follower.set_command(pickle.dumps(joint_states))
         joint_torques: containers.TwoArmJointTorques = pickle.loads(
             follower.get_command()
         )
