@@ -9,7 +9,7 @@ import threading
 
 import zmq
 
-from ..teleoperation import interfaces, containers
+from ..teleoperation import containers, interfaces
 
 
 class Leader(interfaces.Interface):

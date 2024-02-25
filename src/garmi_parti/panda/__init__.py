@@ -200,7 +200,7 @@ class JointFollower(interfaces.PandaInterface):
         self.fdir(container)
         ctrl: controllers.IntegratedVelocity = container.controller
         error = ctrl.get_qd() - joint_states.q.positions
-        dqd = joint_states.dq.velocites - container.params.gain_drift*error
+        dqd = joint_states.dq.velocites - container.params.gain_drift * error
         container.controller.set_control(dqd)
 
     def pause(self) -> None:
