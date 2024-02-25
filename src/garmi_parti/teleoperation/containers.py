@@ -35,11 +35,12 @@ class JointVelocities:
 @dataclasses.dataclass
 class JointStates:
     """Joint state container."""
+
     q: JointPositions
     dq: JointVelocities
 
     @classmethod
-    def from_state(cls, state: libfranka.RobotState) -> None:
+    def from_state(cls, state: libfranka.RobotState) -> JointStates:
         return cls(JointPositions(state.q), JointVelocities(state.dq))
 
 
