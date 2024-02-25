@@ -36,9 +36,7 @@ class Leader(interfaces.Interface):
         self.socket.close()
 
     def _receive(self) -> None:
-        joint_states: containers.JointStates = pickle.loads(self.socket.recv())
-        self.joint_positions = joint_states.q
-        self.joint_velocities = joint_states.dq
+        self.joint_states: containers.TwoArmJointStates = pickle.loads(self.socket.recv())
 
     def pre_teleop(self) -> bool:
         return True
@@ -57,7 +55,7 @@ class Leader(interfaces.Interface):
         return True
 
     def get_command(self) -> bytes:
-        return pickle.dumps(self.joint_velocities)
+        return pickle.dumps(self.joint_states)
 
     def set_command(self, command: bytes) -> None:
         pass
@@ -69,7 +67,7 @@ class Leader(interfaces.Interface):
         pass
 
     def get_sync_command(self) -> bytes:
-        return pickle.dumps(self.joint_positions)
+        return pickle.dumps(containers.TwoArmJointPositions(left=self.joint_states.left.q, right=self.joint_states.right.q))
 
     def set_sync_command(self, command: bytes) -> None:
         pass
