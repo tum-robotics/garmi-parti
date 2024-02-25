@@ -59,7 +59,7 @@ class TeleopAgent:
         self.socket.bind("ipc:///tmp/parti-haptic-sim")
 
         self._object_qpos = np.array([-0.06, 0, 0])
-        self._object_qpos_offset = np.array([0.018, 0, 0])
+        self._object_qpos_offset = np.array([0.028, 0, 0])
         self._plane_declination = 0
 
         if use_ros:
@@ -87,7 +87,7 @@ class TeleopAgent:
         Receives a percept from the environment and returns an action.
         """
         self._comm(timestep)
-        action = np.zeros(20)
+        action = np.zeros(19)
 
         # # This controls the position of the object (x, y, theta)
         action[-3:] = self._object_qpos + self._object_qpos_offset
@@ -121,8 +121,10 @@ class TeleopAgent:
                 message["pose"]["orientation"]["z"],
             ],
         )
+        # we move the COM
+        COM = tr.hmat_inv(tr.pos_quat_to_hmat([2*.075, 2*-.04,2*.015], [1,0,0,0]))
         # object in plane frame
-        T_plane_object = T_plane_0 @ T_0_right0 @ T_right0_object  # pylint: disable=invalid-name
+        T_plane_object = COM @ T_plane_0 @ T_0_right0  @ T_right0_object  # pylint: disable=invalid-name
 
         theta = spatialmath.SO3(T_plane_object[:3, :3]).rpy()
         theta = theta[2]
@@ -216,6 +218,38 @@ class SceneEffector(effector.Effector):
             # update plane
             physics.bind(self._plane).qpos[:] = command[0]
             physics.bind(self._plane).qvel[:] = 0
+
+
+
+class EndEffector(gripper.DummyHand):
+
+  def _build(self, name: str = "endeffector"):
+    mjcf_root = mjcf.element.RootElement(model=name)
+    body = mjcf_root.worldbody.add("body", name="endeffector")
+    body.add(
+        "geom",
+        name="body",
+        type="cylinder",
+        pos=[0,0,0],
+        quat=[1,0,0,0],
+        size=[0.005, 0.13],
+        mass=0.050,
+        solref=[0.002, 0.7],
+        solimp=[0.95, 0.995, 0.001],
+        condim=4,
+        rgba=[.8,.8,.8,1],
+    )
+    self._mjcf_root = mjcf_root
+    self._tool_center_point = self.mjcf_model.worldbody.add('site')
+    self._mjcf_root.model = name
+
+
+def make_endeffector(name: str) -> params.GripperParams:
+    """Creates the endeffector."""
+    name = f"{name}_gripper"
+    gripper_model = EndEffector()
+    gripper_effector = None
+    return params.GripperParams(gripper_model, gripper_effector)
 
 
 def make_gripper(name: str) -> params.GripperParams:

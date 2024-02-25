@@ -92,7 +92,7 @@ def main() -> None:
         has_hand=False,
         joint_positions=Q_TELEOP_LEFT.positions,
         attach_site=left_frame,
-        gripper=sim.make_gripper("right"),
+        gripper=sim.make_endeffector("right"),
         actuation=arm_constants.Actuation.HAPTIC,
     )
     right = params.RobotParams(
