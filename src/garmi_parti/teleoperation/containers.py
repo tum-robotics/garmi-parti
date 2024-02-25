@@ -32,6 +32,17 @@ class JointVelocities:
     velocites: np.ndarray
 
 
+@dataclasses.dataclass
+class JointStates:
+    """Joint state container."""
+    q: JointPositions
+    dq: JointVelocities
+
+    @classmethod
+    def from_state(cls, state: libfranka.RobotState) -> None:
+        return cls(JointPositions(state.q), JointVelocities(state.dq))
+
+
 def _default_stiffness() -> np.ndarray:
     return np.array([600, 600, 600, 600, 250, 150, 50])
 
@@ -70,6 +81,7 @@ class TeleopParams:
     gain_torque: float = 0.0
     gain_joint_torque: float = 0.8
     speed_factor: float = 0.2
+    gain_drift: float = 8.0
 
 
 @dataclasses.dataclass
@@ -198,6 +210,13 @@ class TwoArmJointPositions(TwoArmContainer[typing.Optional[JointPositions]]):
 class TwoArmJointVelocities(TwoArmContainer[typing.Optional[JointVelocities]]):
     """
     Two-arm joint positions container.
+    """
+
+
+@dataclasses.dataclass
+class TwoArmJointStates(TwoArmContainer[typing.Optional[JointStates]]):
+    """
+    Two-arm joint states container.
     """
 
 

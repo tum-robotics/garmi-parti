@@ -139,7 +139,10 @@ class TeleopAgent:
             left=containers.JointVelocities(timestep.observation["left_joint_vel"]),
             right=containers.JointVelocities(timestep.observation["right_joint_vel"]),
         )
-        self.socket.send(pickle.dumps((joint_positions, joint_velocities)))
+        joint_states = containers.JointStates(
+            q=joint_positions, dq=joint_velocities
+        )
+        self.socket.send(pickle.dumps(joint_states))
 
 
 class SceneEffector(effector.Effector):
