@@ -18,9 +18,9 @@
       <geom name="side_d" type="box" pos="0 -.1985 .005" size=".097 .0015 .005" rgba=".2 .2 .2 1" />
       <joint name="plane" type="hinge" axis="1 0 0" pos="0 0 -0.0225" range="-0.2617 0.2617" />
       <body name="object">
-        <joint name="x" type="slide" axis="1 0 0" />
-        <joint name="y" type="slide" axis="0 1 0" />
-        <joint name="theta" type="hinge" axis="0 0 1" />
+        <joint name="x" type="slide" axis="1 0 0" frictionloss="100" />
+        <joint name="y" type="slide" axis="0 1 0" frictionloss="100" />
+        <joint name="theta" type="hinge" axis="0 0 1" pos=".075 -.04 .015" frictionloss="2" />
         <geom type="box" name="object_1" size=".015 .04 .015" pos="0.015 -0.04 0.015" rgba=".8 .8 .8 1" />
         <geom type="box" name="object_2" size=".06 .015 .015" pos=".09 -.065 0.015" rgba=".8 .8 .8 1" />
       </body>
