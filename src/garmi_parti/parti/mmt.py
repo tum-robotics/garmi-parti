@@ -9,7 +9,7 @@ import threading
 
 import zmq
 
-from ..teleoperation import interfaces
+from ..teleoperation import interfaces, containers
 
 
 class Leader(interfaces.Interface):
@@ -36,9 +36,9 @@ class Leader(interfaces.Interface):
         self.socket.close()
 
     def _receive(self) -> None:
-        data = pickle.loads(self.socket.recv())
-        self.joint_positions = data[0]
-        self.joint_velocities = data[1]
+        joint_states: containers.JointStates = pickle.loads(self.socket.recv())
+        self.joint_positions = joint_states.q
+        self.joint_velocities = joint_states.dq
 
     def pre_teleop(self) -> bool:
         return True

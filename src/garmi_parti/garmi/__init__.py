@@ -47,11 +47,11 @@ class JointFollower(panda.JointFollower, interfaces.TwoArmPandaInterface):
         )
 
     def set_command(self, command: bytes) -> None:
-        joint_velocities: containers.TwoArmJointVelocities = pickle.loads(command)
-        if joint_velocities.left is not None:
-            self._set_command(joint_velocities.left, self.left)
-        if joint_velocities.right is not None:
-            self._set_command(joint_velocities.right, self.right)
+        joint_states: containers.TwoArmJointStates = pickle.loads(command)
+        if joint_states.left is not None:
+            self._set_command(joint_states.left, self.left)
+        if joint_states.right is not None:
+            self._set_command(joint_states.right, self.right)
 
     def pause(self) -> None:
         self.left.arm.stop_controller()
