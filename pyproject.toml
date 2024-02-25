@@ -29,8 +29,8 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-  "panda-python",
-  "dm-robotics-panda",
+  "panda-python>=0.7.4",
+  "dm-robotics-panda>=0.4.7",
   "pyzmq",
   "roslibpy",
   "spatialmath-python",
