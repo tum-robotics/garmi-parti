@@ -28,7 +28,7 @@ def main() -> None:
         left,
         transform.Rotation.from_euler(
             "XYZ", [0, 90 / 180 * np.pi, -90 / 180 * np.pi]
-        ).inv(),
+        ).inv()
     )
     right_params = containers.TeleopParams(
         right,
@@ -36,6 +36,6 @@ def main() -> None:
             "XYZ", [0, 90 / 180 * np.pi, 90 / 180 * np.pi]
         ).inv(),
     )
-    srv = server.Server(mmt.Follower(left_params, right_params, True, True), args.port)
+    srv = server.Server(mmt.Follower(left_params, right_params, False, True), args.port)
     server.user_interface(srv)
     srv.shutdown()
