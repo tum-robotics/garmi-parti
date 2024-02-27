@@ -65,15 +65,15 @@ def main() -> None:
     )
     parser.add_argument("--ros-port", type=int, help="rosbridge port", default=9090)
     args = parser.parse_args()
-    left_hostname: str | None
-    right_hostname: str | None
-    left_hostname, right_hostname = utils.get_robot_hostnames()
-
+    
     if args.debug:
         logging.basicConfig(level=logging.DEBUG, force=True)
     if args.sim_only:
         left_hostname = None
         right_hostname = None
+    else:
+        left_hostname, right_hostname = utils.get_robot_hostnames()
+
     if args.deactivate_left:
         left_hostname = None
     if args.deactivate_right:
