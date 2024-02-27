@@ -59,9 +59,9 @@ class TeleopAgent:
         self.socket = self.context.socket(zmq.PUB)
         self.socket.bind("ipc:///tmp/parti-haptic-sim")
 
-        self._object_qpos = np.array([-0.06, 0, 0])
-        self._object_qpos_offset = np.array([0.028, 0, 0])
-        self._plane_declination = 0
+        self._object_qpos = np.array([0, 0, 0])
+        self._object_qpos_offset = np.array([0.03, 0, 0])
+        self._plane_declination = -0.1745
 
         if use_ros:
             client = roslibpy.Ros(host=ros_hostname, port=rosbridge_port)
@@ -122,17 +122,20 @@ class TeleopAgent:
                 message["pose"]["orientation"]["z"],
             ],
         )
-        # we move the COM
-        COM = tr.hmat_inv(
-            tr.pos_quat_to_hmat([2 * 0.075, 2 * -0.04, 2 * 0.015], [1, 0, 0, 0])
-        )
+        # # we move the COM
+        COM = tr.pos_quat_to_hmat([0.075, -0.04, 0.015], [1, 0, 0, 0])
+        # COM_inv = tr.hmat_inv(tr.pos_quat_to_hmat([0.075, -0.04, 0.015], [1, 0, 0, 0]))
         # object in plane frame
-        T_plane_object = COM @ T_plane_0 @ T_0_right0 @ T_right0_object  # pylint: disable=invalid-name
+        T_plane_object = T_plane_0 @ T_0_right0 @ T_right0_object # pylint: disable=invalid-name
 
         theta = spatialmath.SO3(T_plane_object[:3, :3]).rpy()
         theta = theta[2]
+
+        # hack
+        delta = spatialmath.SE2(theta)@spatialmath.SE2(.075, -.04)
+
         self._object_qpos = np.array(
-            [T_plane_object[0, 3], T_plane_object[1, 3], theta]
+            [T_plane_object[0, 3]+delta.t[0], T_plane_object[1, 3]+delta.t[1], theta]
         )
 
     def _comm(self, timestep: dm_env.TimeStep) -> None:
