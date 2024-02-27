@@ -229,7 +229,6 @@ ENDEFFECTOR_XML_PATH = (
 
 
 class EndEffector(gripper.DummyHand):
-
     def _build(self, name: str = "endeffector") -> None:
         self._mjcf_root = mjcf.from_path(ENDEFFECTOR_XML_PATH)
         self._mjcf_root.model = name
