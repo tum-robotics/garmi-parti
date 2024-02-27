@@ -4,6 +4,7 @@ Haptic simulation module for the Parti robot.
 
 from __future__ import annotations
 
+import pathlib
 import pickle
 import threading
 
@@ -122,9 +123,11 @@ class TeleopAgent:
             ],
         )
         # we move the COM
-        COM = tr.hmat_inv(tr.pos_quat_to_hmat([2*.075, 2*-.04,2*.015], [1,0,0,0]))
+        COM = tr.hmat_inv(
+            tr.pos_quat_to_hmat([2 * 0.075, 2 * -0.04, 2 * 0.015], [1, 0, 0, 0])
+        )
         # object in plane frame
-        T_plane_object = COM @ T_plane_0 @ T_0_right0  @ T_right0_object  # pylint: disable=invalid-name
+        T_plane_object = COM @ T_plane_0 @ T_0_right0 @ T_right0_object  # pylint: disable=invalid-name
 
         theta = spatialmath.SO3(T_plane_object[:3, :3]).rpy()
         theta = theta[2]
@@ -220,28 +223,17 @@ class SceneEffector(effector.Effector):
             physics.bind(self._plane).qvel[:] = 0
 
 
+ENDEFFECTOR_XML_PATH = (
+    pathlib.Path(__file__).parent / ".." / "assets" / "endeffector.xml"
+)
+
 
 class EndEffector(gripper.DummyHand):
 
-  def _build(self, name: str = "endeffector"):
-    mjcf_root = mjcf.element.RootElement(model=name)
-    body = mjcf_root.worldbody.add("body", name="endeffector")
-    body.add(
-        "geom",
-        name="body",
-        type="cylinder",
-        pos=[0,0,0],
-        quat=[1,0,0,0],
-        size=[0.005, 0.13],
-        mass=0.050,
-        solref=[0.002, 0.7],
-        solimp=[0.95, 0.995, 0.001],
-        condim=4,
-        rgba=[.8,.8,.8,1],
-    )
-    self._mjcf_root = mjcf_root
-    self._tool_center_point = self.mjcf_model.worldbody.add('site')
-    self._mjcf_root.model = name
+    def _build(self, name: str = "endeffector") -> None:
+        self._mjcf_root = mjcf.from_path(ENDEFFECTOR_XML_PATH)
+        self._mjcf_root.model = name
+        self._tool_center_point = self._mjcf_root.find("site", "TCP")
 
 
 def make_endeffector(name: str) -> params.GripperParams:
