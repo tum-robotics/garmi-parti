@@ -151,7 +151,7 @@ class TeleopAgent:
 
 class SceneEffector(effector.Effector):
     """
-    Effector used to update the state of tracked objects.
+    Effector used to update the state of tracked objects and the environment.
     """
 
     def __init__(self, plane: mjcf.Element, obj: list[mjcf.Element]) -> None:
