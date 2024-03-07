@@ -36,9 +36,17 @@ class TestParti(unittest.TestCase):
         leader.pre_teleop()
         leader.start_teleop()
         leader.get_sync_command()
-        cmd = containers.TwoArmJointTorques(
-            left=containers.JointTorques(np.zeros(7)),
-            right=containers.JointTorques(np.zeros(7)),
+        cmd = containers.TwoArmJointStates(
+            left=containers.JointStates(
+                q=containers.JointPositions(np.zeros(7)),
+                dq=containers.JointVelocities(np.zeros(7)),
+                tau_ext=containers.JointTorques(np.zeros(7)),
+            ),
+            right=containers.JointStates(
+                q=containers.JointPositions(np.zeros(7)),
+                dq=containers.JointVelocities(np.zeros(7)),
+                tau_ext=containers.JointTorques(np.zeros(7)),
+            ),
         )
         leader.set_command(pickle.dumps(cmd))
         joint_states: containers.TwoArmJointStates = pickle.loads(leader.get_command())

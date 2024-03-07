@@ -47,6 +47,7 @@ class TestGarmi(unittest.TestCase):
         self.stop_pub()
 
     def assert_joint_states(self, joint_states: containers.JointStates) -> None:
+        testing.assert_allclose(joint_states.tau_ext.torques, np.zeros(7))
         testing.assert_allclose(joint_states.dq.velocites, np.zeros(7))
         testing.assert_allclose(joint_states.q.positions, np.zeros(7))
 
@@ -70,10 +71,12 @@ class TestGarmi(unittest.TestCase):
                         left=containers.JointStates(
                             q=containers.JointPositions(np.zeros(7)),
                             dq=containers.JointVelocities(np.zeros(7)),
+                            tau_ext=containers.JointTorques(np.zeros(7)),
                         ),
                         right=containers.JointStates(
                             q=containers.JointPositions(np.zeros(7)),
                             dq=containers.JointVelocities(np.zeros(7)),
+                            tau_ext=containers.JointTorques(np.zeros(7)),
                         ),
                     )
                 )

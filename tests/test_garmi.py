@@ -56,19 +56,21 @@ class TestGarmi(unittest.TestCase):
             left=containers.JointStates(
                 q=containers.JointPositions(np.zeros(7)),
                 dq=containers.JointVelocities(np.zeros(7)),
+                tau_ext=containers.JointTorques(np.zeros(7)),
             ),
             right=containers.JointStates(
                 q=containers.JointPositions(np.zeros(7)),
                 dq=containers.JointVelocities(np.zeros(7)),
+                tau_ext=containers.JointTorques(np.zeros(7)),
             ),
         )
         follower.set_sync_command(SYNC_CMD)
         follower.set_command(pickle.dumps(joint_states))
-        joint_torques: containers.TwoArmJointTorques = pickle.loads(
+        joint_torques: containers.TwoArmJointStates = pickle.loads(
             follower.get_command()
         )
-        self.assert_torques(joint_torques.left)
-        self.assert_torques(joint_torques.right)
+        self.assert_torques(joint_states.left.tau_ext)
+        self.assert_torques(joint_states.right.tau_ext)
         follower.open("left")
         follower.close("left")
         self.assert_gripper(follower.left.gripper, 2)
