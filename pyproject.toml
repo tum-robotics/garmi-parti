@@ -29,7 +29,7 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-  "panda-python>=0.7.4",
+  "panda-python>=0.7.5",
   "dm-robotics-panda>=0.4.7",
   "pyzmq",
   "roslibpy",
