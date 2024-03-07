@@ -4,6 +4,7 @@ Haptic simulation module for the Parti robot.
 
 from __future__ import annotations
 
+import csv
 import pathlib
 import pickle
 import threading
@@ -16,6 +17,7 @@ import spatialmath
 import zmq
 from dm_control import composer, mjcf
 from dm_env import specs
+from dm_robotics.agentflow.preprocessors import timestep_preprocessor
 from dm_robotics.moma import effector
 from dm_robotics.panda import gripper
 from dm_robotics.panda import parameters as params
@@ -58,7 +60,7 @@ class TeleopAgent:
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PUB)
         self.socket.bind("ipc:///tmp/parti-haptic-sim")
-
+        self._obs: list[dict[str, np.ndarray]] = []
         self._object_qpos = np.array([0, 0, 0])
         self._object_qpos_offset = np.array([0.03, 0, 0])
         self._plane_declination = -0.1745
@@ -81,6 +83,7 @@ class TeleopAgent:
         """
         self.socket.close()
         self.context.term()
+        save_obs(self._obs, "obs.csv")
 
     def step(self, timestep: dm_env.TimeStep) -> np.ndarray:
         """
@@ -88,6 +91,7 @@ class TeleopAgent:
         Receives a percept from the environment and returns an action.
         """
         self._comm(timestep)
+        self._obs.append(timestep.observation)
         action = np.zeros(19)
 
         # # This controls the position of the object (x, y, theta)
@@ -126,16 +130,20 @@ class TeleopAgent:
         COM = tr.pos_quat_to_hmat([0.075, -0.04, 0.015], [1, 0, 0, 0])
         # COM_inv = tr.hmat_inv(tr.pos_quat_to_hmat([0.075, -0.04, 0.015], [1, 0, 0, 0]))
         # object in plane frame
-        T_plane_object = T_plane_0 @ T_0_right0 @ T_right0_object # pylint: disable=invalid-name
+        T_plane_object = T_plane_0 @ T_0_right0 @ T_right0_object  # pylint: disable=invalid-name
 
         theta = spatialmath.SO3(T_plane_object[:3, :3]).rpy()
         theta = theta[2]
 
         # hack
-        delta = spatialmath.SE2(theta)@spatialmath.SE2(.075, -.04)
+        delta = spatialmath.SE2(theta) @ spatialmath.SE2(0.075, -0.04)
 
         self._object_qpos = np.array(
-            [T_plane_object[0, 3]+delta.t[0], T_plane_object[1, 3]+delta.t[1], theta]
+            [
+                T_plane_object[0, 3] + delta.t[0],
+                T_plane_object[1, 3] + delta.t[1],
+                theta,
+            ]
         )
 
     def _comm(self, timestep: dm_env.TimeStep) -> None:
@@ -143,13 +151,51 @@ class TeleopAgent:
             left=containers.JointStates(
                 q=containers.JointPositions(timestep.observation["left_joint_pos"]),
                 dq=containers.JointVelocities(timestep.observation["left_joint_vel"]),
+                tau_ext=containers.JointTorques(
+                    timestep.observation["left_joint_torques"]
+                ),
             ),
             right=containers.JointStates(
                 q=containers.JointPositions(timestep.observation["right_joint_pos"]),
                 dq=containers.JointVelocities(timestep.observation["right_joint_vel"]),
+                tau_ext=containers.JointTorques(
+                    timestep.observation["right_joint_torques"]
+                ),
             ),
         )
+
         self.socket.send(pickle.dumps(joint_states))
+
+
+def save_obs(obs: list[dict[str, np.ndarray]], output_file: str) -> None:
+    """Saves a list of observations to a CSV file."""
+    # Extracting field names from the first row
+    first_row = obs[0]
+    fieldnames = []
+    for key, value in first_row.items():
+        if np.ndim(value) > 0:
+            if len(value) > 1:
+                fieldnames.extend([f"{key}_{i+1}" for i in range(len(value))])
+            else:
+                fieldnames.append(key)
+        else:
+            fieldnames.append(key)
+    # Writing to CSV
+    with pathlib.Path(output_file).open("w", encoding="utf-8") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in obs:
+            new_row = {}
+            for key, value in row.items():
+                if np.ndim(value) > 0:
+                    if len(value) > 1:
+                        for i, v in enumerate(value):
+                            new_row[f"{key}_{i+1}"] = v
+                    else:
+                        new_row[key] = value[0]
+                else:
+                    new_row[key] = value.item()  # Convert 0-d array to scalar
+            writer.writerow(new_row)
 
 
 class SceneEffector(effector.Effector):
@@ -160,6 +206,11 @@ class SceneEffector(effector.Effector):
     def __init__(self, plane: mjcf.Element, obj: list[mjcf.Element]) -> None:
         self._plane = plane
         self._object = obj
+        self._object_obs = np.zeros(3, dtype=np.float32)
+        self._virtual_object_obs = np.zeros(3, dtype=np.float32)
+        self._updating_obs = np.zeros(1, dtype=np.float32)
+        self._plane_obs = np.zeros(1, dtype=np.float32)
+        self._virtual_plane_obs = np.zeros(1, dtype=np.float32)
         self._spec = None
         self._deadtime = 0
 
@@ -197,10 +248,46 @@ class SceneEffector(effector.Effector):
     def prefix(self) -> str:
         return "scene"
 
+    def get_object_observations(
+        self, timestep: timestep_preprocessor.PreprocessorTimestep
+    ) -> np.ndarray:
+        del timestep
+        return self._object_obs
+
+    def get_virtual_object_observations(
+        self, timestep: timestep_preprocessor.PreprocessorTimestep
+    ) -> np.ndarray:
+        del timestep
+        return self._virtual_object_obs
+
+    def get_plane_observations(
+        self, timestep: timestep_preprocessor.PreprocessorTimestep
+    ) -> np.ndarray:
+        del timestep
+        return self._plane_obs
+
+    def get_virtual_plane_observations(
+        self, timestep: timestep_preprocessor.PreprocessorTimestep
+    ) -> np.ndarray:
+        del timestep
+        return self._virtual_plane_obs
+
+    def get_updating_observations(
+        self, timestep: timestep_preprocessor.PreprocessorTimestep
+    ) -> np.ndarray:
+        del timestep
+        return self._updating_obs
+
     def set_control(self, physics: mjcf.Physics, command: np.ndarray) -> None:
+        self._object_obs = command[1:]
+        self._virtual_object_obs = physics.bind(self._object).qpos[:].astype(np.float32)
+        self._plane_obs = np.atleast_1d(command[0])
+        self._virtual_plane_obs = physics.bind(self._plane).qpos[:].astype(np.float32)
+
         if physics.time() - self._deadtime < DEADTIME:
             return
         update = True
+        self._updating_obs = np.ones(1, dtype=np.float32)
         allowed_collision = ["plane", "side_a", "side_b", "side_c", "side_d"]
         for contact in physics.data.contact:
             geom1_name = physics.model.id2name(contact.geom1, "geom")
@@ -214,6 +301,7 @@ class SceneEffector(effector.Effector):
                 and geom2_name not in allowed_collision
             ):
                 update = False
+                self._updating_obs = np.zeros(1, dtype=np.float32)
                 self._deadtime = physics.time()
                 break
         # only update scene if object is not in contact with element other than plane

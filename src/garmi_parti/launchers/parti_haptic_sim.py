@@ -16,6 +16,8 @@ import pathlib
 
 import numpy as np
 from dm_control import composer
+from dm_env import specs
+from dm_robotics.agentflow.preprocessors import observation_transforms
 from dm_robotics.moma.tasks import run_loop
 from dm_robotics.panda import arm_constants, environment
 from dm_robotics.panda import parameters as params
@@ -65,7 +67,7 @@ def main() -> None:
     )
     parser.add_argument("--ros-port", type=int, help="rosbridge port", default=9090)
     args = parser.parse_args()
-    
+
     if args.debug:
         logging.basicConfig(level=logging.DEBUG, force=True)
     if args.sim_only:
@@ -107,8 +109,62 @@ def main() -> None:
     )
     robot_params = [left, right]
 
+    scene_effector = sim.SceneEffector(plane, obj)
+
     env_builder = environment.PandaEnvironment(robot_params, arena, 0.016)
-    env_builder.add_extra_effectors([sim.SceneEffector(plane, obj)])
+    env_builder.add_extra_effectors([scene_effector])
+
+    add_object_obs = observation_transforms.AddObservation(
+        "object",
+        scene_effector.get_object_observations,
+        specs.Array((3,), dtype=np.float32),
+    )
+    add_virtual_object_obs = observation_transforms.AddObservation(
+        "virtual_object",
+        scene_effector.get_virtual_object_observations,
+        specs.Array((3,), dtype=np.float32),
+    )
+    add_plane_obs = observation_transforms.AddObservation(
+        "plane",
+        scene_effector.get_plane_observations,
+        specs.Array((1,), dtype=np.float32),
+    )
+    add_virtual_plane_obs = observation_transforms.AddObservation(
+        "virtual_plane",
+        scene_effector.get_virtual_plane_observations,
+        specs.Array((1,), dtype=np.float32),
+    )
+    add_updating_obs = observation_transforms.AddObservation(
+        "updating",
+        scene_effector.get_updating_observations,
+        specs.Array((1,), dtype=np.float32),
+    )
+
+    env_builder.add_timestep_preprocessors(
+        [
+            add_object_obs,
+            add_virtual_object_obs,
+            add_plane_obs,
+            add_virtual_plane_obs,
+            add_updating_obs,
+            observation_transforms.RetainObservations(
+                [
+                    "time",
+                    "left_joint_pos",
+                    "left_joint_vel",
+                    "left_joint_torques",
+                    "right_joint_pos",
+                    "right_joint_vel",
+                    "right_joint_torques",
+                    "object",
+                    "virtual_object",
+                    "plane",
+                    "virtual_plane",
+                    "updating",
+                ]
+            ),
+        ]
+    )
 
     with env_builder.build_task_environment() as env:
         dmr_panda_utils.full_spec(env)
