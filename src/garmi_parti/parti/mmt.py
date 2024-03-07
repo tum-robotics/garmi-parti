@@ -19,26 +19,30 @@ class Leader(interfaces.Interface):
     """
 
     def __init__(self) -> None:
+        self._follower_joint_states = containers.TwoArmJointStates()
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.SUB)
         self.socket.connect("ipc:///tmp/parti-haptic-sim")
         self.socket.setsockopt(zmq.SUBSCRIBE, b"")
-        self._receive()
+        self.socket_pub = self.context.socket(zmq.PUB)
+        self.socket_pub.connect("ipc://tmp/parti-haptic-sim-obs")
+        self._receive_send()
         self.thread = threading.Thread(target=self._run)
         self.thread.start()
 
     def _run(self) -> None:
         while True:
             try:
-                self._receive()
+                self._receive_send()
             except zmq.error.ContextTerminated:
                 break
         self.socket.close()
 
-    def _receive(self) -> None:
+    def _receive_send(self) -> None:
         self.joint_states: containers.TwoArmJointStates = pickle.loads(
             self.socket.recv()
         )
+        self.socket_pub.send(pickle.dumps(self._follower_joint_states))
 
     def pre_teleop(self) -> bool:
         return True

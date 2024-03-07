@@ -3,7 +3,13 @@ Haptic simulation module for the Parti robot.
 """
 
 from __future__ import annotations
-
+from dm_robotics.moma.sensors import robot_arm_sensor
+from dm_robotics.moma.sensors.robot_arm_sensor import joint_observations
+from dm_control.composer.observation import observable
+import zmq
+import threading
+from dm_control import mjcf
+import pickle
 import csv
 import pathlib
 import pickle
@@ -377,3 +383,48 @@ def move_arms(
     t_left.join()
     t_right.join()
     del panda_left, panda_right
+
+
+class FollowerSensor(robot_arm_sensor.RobotArmSensor):
+
+    def __init__(self):
+        self._name = "follower"
+        self._observables = {
+            self.get_obs_key(joint_observations.Observations.JOINT_POS):
+                observable.Generic(self._joint_pos),
+            self.get_obs_key(joint_observations.Observations.JOINT_VEL):
+                observable.Generic(self._joint_vel),
+            self.get_obs_key(joint_observations.Observations.JOINT_TORQUES):
+                observable.Generic(self._joint_torques),
+        }
+        for obs in self._observables.values():
+            obs.enabled = True
+        self.context = zmq.Context()
+        self.socket = self.context.socket(zmq.SUB)
+        self.socket.connect("ipc:///tmp/parti-haptic-sim-obs")
+        self.socket.setsockopt(zmq.SUBSCRIBE, b"")
+        self.thread = threading.Thread(target=self._run)
+        self.thread.start()
+
+    def _joint_pos(self, physics: mjcf.Physics) -> np.ndarray:
+        del physics
+        return np.zeros(7)
+
+    def _joint_vel(self, physics: mjcf.Physics) -> np.ndarray:
+        del physics
+        return np.zeros(7)
+
+    def _joint_torques(self, physics: mjcf.Physics) -> np.ndarray:
+        del physics
+        return np.zeros(7)
+
+    def _run(self) -> None:
+        while True:
+            try:
+                print(pickle.loads(self.socket.recv()))
+            except zmq.error.ContextTerminated:
+                break
+        self.socket.close()
+    
+    def close(self):
+        self.context.term()
