@@ -19,13 +19,14 @@ class Leader(interfaces.Interface):
     """
 
     def __init__(self) -> None:
-        self._follower_joint_states = containers.TwoArmJointStates()
+        self._follower_joint_states = containers.TwoArmJointStates(left=None, right=None)
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.SUB)
         self.socket.connect("ipc:///tmp/parti-haptic-sim")
         self.socket.setsockopt(zmq.SUBSCRIBE, b"")
-        self.socket_pub = self.context.socket(zmq.PUB)
-        self.socket_pub.connect("ipc://tmp/parti-haptic-sim-obs")
+        self.context_pub = zmq.Context()
+        self.socket_pub = self.context_pub.socket(zmq.PUB)
+        self.socket_pub.connect("ipc:///tmp/parti-haptic-sim-obs")
         self._receive_send()
         self.thread = threading.Thread(target=self._run)
         self.thread.start()
@@ -64,7 +65,7 @@ class Leader(interfaces.Interface):
         return pickle.dumps(self.joint_states)
 
     def set_command(self, command: bytes) -> None:
-        pass
+        self._follower_joint_states = pickle.loads(command)
 
     def open(self, end_effector: str = "") -> None:
         pass

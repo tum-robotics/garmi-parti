@@ -169,7 +169,6 @@ class TeleopAgent:
                 ),
             ),
         )
-
         self.socket.send(pickle.dumps(joint_states))
 
 
@@ -389,6 +388,7 @@ class FollowerSensor(robot_arm_sensor.RobotArmSensor):
 
     def __init__(self):
         self._name = "follower"
+        self._follower_joint_state = containers.TwoArmJointStates(left=None, right=None)
         self._observables = {
             self.get_obs_key(joint_observations.Observations.JOINT_POS):
                 observable.Generic(self._joint_pos),
@@ -401,27 +401,33 @@ class FollowerSensor(robot_arm_sensor.RobotArmSensor):
             obs.enabled = True
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.SUB)
-        self.socket.connect("ipc:///tmp/parti-haptic-sim-obs")
+        self.socket.bind("ipc:///tmp/parti-haptic-sim-obs")
         self.socket.setsockopt(zmq.SUBSCRIBE, b"")
         self.thread = threading.Thread(target=self._run)
         self.thread.start()
 
     def _joint_pos(self, physics: mjcf.Physics) -> np.ndarray:
         del physics
-        return np.zeros(7)
+        if self._follower_joint_state.left is None:
+            return np.zeros(7)
+        return self._follower_joint_state.left.q.positions
 
     def _joint_vel(self, physics: mjcf.Physics) -> np.ndarray:
         del physics
-        return np.zeros(7)
-
+        if self._follower_joint_state.left is None:
+            return np.zeros(7)
+        return self._follower_joint_state.left.dq.velocites
+    
     def _joint_torques(self, physics: mjcf.Physics) -> np.ndarray:
         del physics
-        return np.zeros(7)
-
+        if self._follower_joint_state.left is None:
+            return np.zeros(7)
+        return self._follower_joint_state.left.tau_ext.torques
+    
     def _run(self) -> None:
         while True:
             try:
-                print(pickle.loads(self.socket.recv()))
+                self._follower_joint_state = pickle.loads(self.socket.recv())
             except zmq.error.ContextTerminated:
                 break
         self.socket.close()
