@@ -28,7 +28,7 @@ def main() -> None:
         left,
         transform.Rotation.from_euler(
             "XYZ", [0, 90 / 180 * np.pi, -90 / 180 * np.pi]
-        ).inv()
+        ).inv(),
     )
     right_params = containers.TeleopParams(
         right,

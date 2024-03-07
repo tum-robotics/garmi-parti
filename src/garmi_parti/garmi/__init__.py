@@ -41,7 +41,7 @@ class JointFollower(panda.JointFollower, interfaces.TwoArmPandaInterface):
 
     def get_command(self) -> bytes:
         return pickle.dumps(
-            containers.TwoArmJointTorques(
+            containers.TwoArmJointStates(
                 left=self._get_command(self.left), right=self._get_command(self.right)
             )
         )

@@ -82,17 +82,17 @@ class JointLeader(interfaces.PandaInterface):
         return containers.JointStates.from_state(container.arm.get_state())
 
     def set_command(self, command: bytes) -> None:
-        joint_torques: containers.JointTorques = pickle.loads(command)
-        self._set_command(self.panda, joint_torques)
+        joint_states: containers.JointStates = pickle.loads(command)
+        self._set_command(self.panda, joint_states)
 
     def _set_command(
         self,
         container: containers.TeleopContainer,
-        joint_torques: containers.JointTorques,
+        joint_states: containers.JointStates,
     ) -> None:
         self.fdir(container)
         container.controller.set_control(
-            -container.params.gain_joint_torque * np.array(joint_torques.torques)
+            -container.params.gain_joint_torque * np.array(joint_states.tau_ext.torques)
         )
 
     def get_sync_command(self) -> bytes:
@@ -185,8 +185,8 @@ class JointFollower(interfaces.PandaInterface):
 
     def _get_command(
         self, container: containers.TeleopContainer
-    ) -> containers.JointTorques:
-        return containers.JointTorques(container.arm.get_state().tau_ext_hat_filtered)
+    ) -> containers.JointStates:
+        return containers.JointStates.from_state(container.arm.get_state())
 
     def set_command(self, command: bytes) -> None:
         joint_states: containers.JointStates = pickle.loads(command)

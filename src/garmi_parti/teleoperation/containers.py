@@ -33,16 +33,30 @@ class JointVelocities:
 
 
 @dataclasses.dataclass
+class JointTorques:
+    """
+    Joint velocity container.
+    """
+
+    torques: np.ndarray
+
+
+@dataclasses.dataclass
 class JointStates:
     """Joint state container."""
 
     q: JointPositions
     dq: JointVelocities
+    tau_ext: JointTorques
 
     @classmethod
     def from_state(cls, state: libfranka.RobotState) -> JointStates:
         """Construct a joint states container from a libfranka robot state."""
-        return cls(JointPositions(state.q), JointVelocities(state.dq))
+        return cls(
+            JointPositions(state.q),
+            JointVelocities(state.dq),
+            JointTorques(state.tau_ext_hat_filtered),
+        )
 
 
 def _default_stiffness() -> np.ndarray:
