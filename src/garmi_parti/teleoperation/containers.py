@@ -53,9 +53,9 @@ class JointStates:
     def from_state(cls, state: libfranka.RobotState) -> JointStates:
         """Construct a joint states container from a libfranka robot state."""
         return cls(
-            JointPositions(state.q),
-            JointVelocities(state.dq),
-            JointTorques(state.tau_ext_hat_filtered),
+            JointPositions(np.array(state.q)),
+            JointVelocities(np.array(state.dq)),
+            JointTorques(np.array(state.tau_ext_hat_filtered)),
         )
 
 
