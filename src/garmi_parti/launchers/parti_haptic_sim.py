@@ -13,7 +13,6 @@ from __future__ import annotations
 import argparse
 import logging
 import pathlib
-from dm_robotics.moma.models.robots.robot_arms.robot_arm import RobotArm
 
 import numpy as np
 from dm_control import composer
@@ -141,7 +140,7 @@ def main() -> None:
         specs.Array((1,), dtype=np.float32),
     )
 
-    env_builder.add_extra_sensors([sim.FollowerSensor()])
+    env_builder.add_extra_sensors([sim.FollowerSensor(env_builder.robots["panda"])])
     env_builder.add_timestep_preprocessors(
         [
             add_object_obs,

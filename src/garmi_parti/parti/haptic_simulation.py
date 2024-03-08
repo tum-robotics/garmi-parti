@@ -3,13 +3,7 @@ Haptic simulation module for the Parti robot.
 """
 
 from __future__ import annotations
-from dm_robotics.moma.sensors import robot_arm_sensor
-from dm_robotics.moma.sensors.robot_arm_sensor import joint_observations
-from dm_control.composer.observation import observable
-import zmq
-import threading
-from dm_control import mjcf
-import pickle
+
 import csv
 import pathlib
 import pickle
@@ -22,10 +16,13 @@ import roslibpy
 import spatialmath
 import zmq
 from dm_control import composer, mjcf
+from dm_control.composer.observation import observable
 from dm_env import specs
 from dm_robotics.agentflow.preprocessors import timestep_preprocessor
 from dm_robotics.moma import effector
-from dm_robotics.panda import gripper
+from dm_robotics.moma.sensors import robot_arm_sensor
+from dm_robotics.moma.sensors.robot_arm_sensor import joint_observations
+from dm_robotics.panda import arm, gripper
 from dm_robotics.panda import parameters as params
 from dm_robotics.transformations import transformations as tr
 
@@ -133,7 +130,7 @@ class TeleopAgent:
             ],
         )
         # # we move the COM
-        COM = tr.pos_quat_to_hmat([0.075, -0.04, 0.015], [1, 0, 0, 0])
+        # COM = tr.pos_quat_to_hmat([0.075, -0.04, 0.015], [1, 0, 0, 0])
         # COM_inv = tr.hmat_inv(tr.pos_quat_to_hmat([0.075, -0.04, 0.015], [1, 0, 0, 0]))
         # object in plane frame
         T_plane_object = T_plane_0 @ T_0_right0 @ T_right0_object  # pylint: disable=invalid-name
@@ -385,17 +382,20 @@ def move_arms(
 
 
 class FollowerSensor(robot_arm_sensor.RobotArmSensor):
-
-    def __init__(self):
+    def __init__(self, arm: arm.Panda):
         self._name = "follower"
+        self._arm = arm
         self._follower_joint_state = containers.TwoArmJointStates(left=None, right=None)
         self._observables = {
-            self.get_obs_key(joint_observations.Observations.JOINT_POS):
-                observable.Generic(self._joint_pos),
-            self.get_obs_key(joint_observations.Observations.JOINT_VEL):
-                observable.Generic(self._joint_vel),
-            self.get_obs_key(joint_observations.Observations.JOINT_TORQUES):
-                observable.Generic(self._joint_torques),
+            self.get_obs_key(
+                joint_observations.Observations.JOINT_POS
+            ): observable.Generic(self._joint_pos),
+            self.get_obs_key(
+                joint_observations.Observations.JOINT_VEL
+            ): observable.Generic(self._joint_vel),
+            self.get_obs_key(
+                joint_observations.Observations.JOINT_TORQUES
+            ): observable.Generic(self._joint_torques),
         }
         for obs in self._observables.values():
             obs.enabled = True
@@ -417,13 +417,12 @@ class FollowerSensor(robot_arm_sensor.RobotArmSensor):
         if self._follower_joint_state.left is None:
             return np.zeros(7)
         return self._follower_joint_state.left.dq.velocites
-    
+
     def _joint_torques(self, physics: mjcf.Physics) -> np.ndarray:
-        del physics
         if self._follower_joint_state.left is None:
             return np.zeros(7)
-        return self._follower_joint_state.left.tau_ext.torques
-    
+        return physics.bind(self._arm.joints).qfrc_constraint * 0.1
+
     def _run(self) -> None:
         while True:
             try:
@@ -431,6 +430,6 @@ class FollowerSensor(robot_arm_sensor.RobotArmSensor):
             except zmq.error.ContextTerminated:
                 break
         self.socket.close()
-    
-    def close(self):
+
+    def close(self) -> None:
         self.context.term()

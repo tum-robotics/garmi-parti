@@ -19,7 +19,9 @@ class Leader(interfaces.Interface):
     """
 
     def __init__(self) -> None:
-        self._follower_joint_states = containers.TwoArmJointStates(left=None, right=None)
+        self._follower_joint_states = containers.TwoArmJointStates(
+            left=None, right=None
+        )
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.SUB)
         self.socket.connect("ipc:///tmp/parti-haptic-sim")
