@@ -66,7 +66,7 @@ class TestGarmi(unittest.TestCase):
         )
         follower.set_sync_command(SYNC_CMD)
         follower.set_command(pickle.dumps(joint_states))
-        joint_torques: containers.TwoArmJointStates = pickle.loads(
+        joint_states: containers.TwoArmJointStates = pickle.loads(
             follower.get_command()
         )
         self.assert_torques(joint_states.left.tau_ext)

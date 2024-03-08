@@ -26,7 +26,7 @@ class JointPositions:
 @dataclasses.dataclass
 class JointVelocities:
     """
-    Joint velocity container.
+    Joint velocities container.
     """
 
     velocites: np.ndarray
@@ -35,7 +35,7 @@ class JointVelocities:
 @dataclasses.dataclass
 class JointTorques:
     """
-    Joint velocity container.
+    Joint torques container.
     """
 
     torques: np.ndarray
@@ -160,15 +160,6 @@ class Wrench:
 
     force: np.ndarray
     torque: np.ndarray
-
-
-@dataclasses.dataclass
-class JointTorques:
-    """
-    Joint torque container.
-    """
-
-    torques: np.ndarray
 
 
 @dataclasses.dataclass
