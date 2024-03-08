@@ -130,8 +130,8 @@ class TeleopAgent:
             ],
         )
         # # we move the COM
-        # COM = tr.pos_quat_to_hmat([0.075, -0.04, 0.015], [1, 0, 0, 0])
-        # COM_inv = tr.hmat_inv(tr.pos_quat_to_hmat([0.075, -0.04, 0.015], [1, 0, 0, 0]))
+        # COM = tr.pos_quat_to_hmat([0.06, -0.055, 0.015], [1, 0, 0, 0])
+        # COM_inv = tr.hmat_inv(tr.pos_quat_to_hmat([0.06, -0.055, 0.015], [1, 0, 0, 0]))
         # object in plane frame
         T_plane_object = T_plane_0 @ T_0_right0 @ T_right0_object  # pylint: disable=invalid-name
 
@@ -139,7 +139,7 @@ class TeleopAgent:
         theta = theta[2]
 
         # hack
-        delta = spatialmath.SE2(theta) @ spatialmath.SE2(0.075, -0.04)
+        delta = spatialmath.SE2(theta) @ spatialmath.SE2(0.06, -0.055)
 
         self._object_qpos = np.array(
             [
