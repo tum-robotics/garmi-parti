@@ -140,7 +140,7 @@ def main() -> None:
         specs.Array((1,), dtype=np.float32),
     )
 
-    env_builder.add_extra_sensors([sim.FollowerSensor(env_builder.robots["left"])])
+    env_builder.add_extra_sensors([sim.FollowerSensor(env_builder.robots["left"].arm)])
     env_builder.add_timestep_preprocessors(
         [
             add_object_obs,
