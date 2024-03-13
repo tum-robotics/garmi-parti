@@ -408,6 +408,7 @@ class FollowerSensor(robot_arm_sensor.RobotArmSensor):
             self.get_obs_key(
                 joint_observations.Observations.JOINT_TORQUES
             ): observable.Generic(self._joint_torques),
+            "follower_virtual_joint_torques":observable.Generic(self._virtual_joint_torques)
         }
         for obs in self._observables.values():
             obs.enabled = True
@@ -431,6 +432,11 @@ class FollowerSensor(robot_arm_sensor.RobotArmSensor):
         return self._follower_joint_state.left.dq.velocites
 
     def _joint_torques(self, physics: mjcf.Physics) -> np.ndarray:
+        if self._follower_joint_state.left is None:
+            return np.zeros(7)
+        return self._follower_joint_state.left.dq.velocites
+    
+    def _virtual_joint_torques(self, physics: mjcf.Physics) -> np.ndarray:
         if self._follower_joint_state.left is None:
             return np.zeros(7)
         return physics.bind(self._arm.joints).qfrc_constraint * 0.1

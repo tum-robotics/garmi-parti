@@ -172,6 +172,7 @@ def main() -> None:
                     "follower_joint_pos",
                     "follower_joint_vel",
                     "follower_joint_torques",
+                    "follower_virtual_joint_torques",
                     "object",
                     "virtual_object",
                     "plane",
