@@ -65,7 +65,7 @@ class TeleopAgent:
         self.socket.bind("ipc:///tmp/parti-haptic-sim")
         self._obs: list[dict[str, np.ndarray]] = []
         self._object_qpos = np.array([0, 0, 0])
-        self._object_qpos_offset = np.array([0.03, 0, 0])
+        self._object_qpos_offset = np.array([0.04, 0.023, 0.05])
         self._plane_declination = -0.1745
 
         if use_ros:
