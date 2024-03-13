@@ -22,8 +22,8 @@
         <joint name="y" type="slide" axis="0 1 0" frictionloss="100" />
         <joint name="theta" type="hinge" axis="0 0 1" pos="0.06 -0.055 0.015" frictionloss="2" />
         <site name="object" pos="0.06 -0.055 0.015" />
-        <geom type="box" name="object_1" size=".015 .04 .015" pos="0.015 -0.04 0.015" rgba=".8 .8 .8 1" />
-        <geom type="box" name="object_2" size=".06 .015 .015" pos=".09 -.065 0.015" rgba=".8 .8 .8 1" />
+        <geom type="box" mass="0.142" name="object_1" size=".015 .04 .015" pos="0.015 -0.04 0.015" rgba=".8 .8 .8 1" />
+        <geom type="box" mass="0.213" name="object_2" size=".06 .015 .015" pos=".09 -.065 0.015" rgba=".8 .8 .8 1" />
       </body>
 
       <body name="goal" pos="0 0 0" euler="0 0 -1.5707">
