@@ -434,12 +434,12 @@ class FollowerSensor(robot_arm_sensor.RobotArmSensor):
     def _joint_torques(self, physics: mjcf.Physics) -> np.ndarray:
         if self._follower_joint_state.left is None:
             return np.zeros(7)
-        return self._follower_joint_state.left.dq.velocites
+        return self._follower_joint_state.left.tau_ext.torques
     
     def _virtual_joint_torques(self, physics: mjcf.Physics) -> np.ndarray:
         if self._follower_joint_state.left is None:
             return np.zeros(7)
-        return physics.bind(self._arm.joints).qfrc_constraint * 0.1
+        return physics.bind(self._arm.joints).qfrc_constraint
 
     def _run(self) -> None:
         while True:
