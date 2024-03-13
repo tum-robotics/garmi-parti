@@ -11,11 +11,11 @@
     <site name="right" pos="0 -0.24 0.5" quat="0.5 0.5 0.5 0.5" />
     <light directional='true' diffuse='.7 .7 .7' pos='1 .1 2' dir='0 -.1 -2' specular='.3 .3 .3' castshadow='true'/>
     <body pos=".845 0.015 .34" name="plane">
-      <geom name="plane" type="box" pos="0 0 -.01" size=".1 .2 .01" rgba=".2 .2 .2 1" />
-      <geom name="side_a" type="box" pos=".0985 0 .0015" size=".0015 .2 .0015" rgba=".2 .2 .2 1" />
-      <geom name="side_b" type="box" pos="-.0985 0 .0015" size=".0015 .2 .0015" rgba=".2 .2 .2 1" />
-      <geom name="side_c" type="box" pos="0 .1985 .0015" size=".097 .0015 .0015" rgba=".2 .2 .2 1" />
-      <geom name="side_d" type="box" pos="0 -.1985 .0015" size=".097 .0015 .0015" rgba=".2 .2 .2 1" />
+      <geom name="plane" type="box" pos="0 0 -.01" size=".105 .205 .01" rgba=".2 .2 .2 1" />
+      <geom name="side_a" type="box" pos=".1035 0 .0015" size=".0015 .205 .0015" rgba=".2 .2 .2 1" />
+      <geom name="side_b" type="box" pos="-.1035 0 .0015" size=".0015 .205 .0015" rgba=".2 .2 .2 1" />
+      <geom name="side_c" type="box" pos="0 .2035 .0015" size=".102 .0015 .0015" rgba=".2 .2 .2 1" />
+      <geom name="side_d" type="box" pos="0 -.2035 .0015" size=".102 .0015 .0015" rgba=".2 .2 .2 1" />
       <joint name="plane" type="hinge" axis="1 0 0" pos="0 0 -0.0225" range="-0.1745 0.1745" />
       <body name="object" pos="-.075 .04 0">
         <joint name="x" type="slide" axis="1 0 0" frictionloss="100" />
