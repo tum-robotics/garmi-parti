@@ -67,6 +67,7 @@ class TeleopAgent:
         self._object_qpos = np.array([0, 0, 0])
         self._object_qpos_offset = np.array([0.04, 0.023, 0.05])
         self._plane_declination = -0.1745
+        self._ft = np.zeros(6)
 
         if use_ros:
             client = roslibpy.Ros(host=ros_hostname, port=rosbridge_port)
@@ -79,6 +80,8 @@ class TeleopAgent:
                 client, "/detect_plane/pose", "geometry_msgs/Pose"
             )
             listener_2.subscribe(self._plane_callback)
+            listener_3 = roslibpy.Topic(client, "/ft_compensated", "geometry_msgs/WrenchStamped")
+            listener_3.subscribe(self._ft_callback)
 
     def shutdown(self) -> None:
         """
@@ -102,6 +105,15 @@ class TeleopAgent:
         # This controls the declination of the plane
         action[-4] = self._plane_declination
         return action
+
+    def _ft_callback(self, message: dict) -> None:
+        force = message["wrench"]["force"]
+        torque = message["wrench"]["torque"]
+        self._ft = np.array([force["x"], force["y"], force["z"], torque["x"], torque["y"], torque["z"]])
+
+    def get_force_torque_obs(self, timestep: timestep_preprocessor.PreprocessorTimestep) -> np.ndarray:
+        del timestep
+        return self._ft
 
     def _plane_callback(self, message: dict) -> None:
         normal = [

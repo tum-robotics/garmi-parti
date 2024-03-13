@@ -140,9 +140,21 @@ def main() -> None:
         specs.Array((1,), dtype=np.float32),
     )
 
+    agent = sim.TeleopAgent(
+        arena,
+        specs.Array((19,), dtype=np.float32),
+        np.r_[Q_TELEOP_LEFT.positions, Q_TELEOP_RIGHT.positions],
+        args.use_ros,
+        args.ros_hostname,
+        args.ros_port,
+    )
+
+    add_force_torque_obs = observation_transforms.AddObservation("force_torque", agent.get_force_torque_obs, specs.Array((6,), dtype=np.float64))
+
     env_builder.add_extra_sensors([sim.FollowerSensor(env_builder.robots["left"].arm)])
     env_builder.add_timestep_preprocessors(
         [
+            add_force_torque_obs,
             add_object_obs,
             add_virtual_object_obs,
             add_plane_obs,
@@ -165,6 +177,7 @@ def main() -> None:
                     "plane",
                     "virtual_plane",
                     "updating",
+                    "force_torque"
                 ]
             ),
         ]
@@ -172,14 +185,6 @@ def main() -> None:
 
     with env_builder.build_task_environment() as env:
         dmr_panda_utils.full_spec(env)
-        agent = sim.TeleopAgent(
-            env.task.arena,
-            env.action_spec(),
-            np.r_[Q_TELEOP_LEFT.positions, Q_TELEOP_RIGHT.positions],
-            args.use_ros,
-            args.ros_hostname,
-            args.ros_port,
-        )
         if not args.testing:
             app = dmr_panda_utils.ApplicationWithPlot()
             app.launch(env, policy=agent.step)
