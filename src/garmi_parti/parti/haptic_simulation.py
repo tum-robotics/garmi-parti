@@ -98,7 +98,7 @@ class TeleopAgent:
         """
         self._comm(timestep)
         self._obs.append(timestep.observation)
-        action = np.zeros(19)
+        action = np.zeros(18)
 
         # # This controls the position of the object (x, y, theta)
         action[-3:] = self._object_qpos + self._object_qpos_offset
@@ -332,18 +332,25 @@ ENDEFFECTOR_XML_PATH = (
     pathlib.Path(__file__).parent / ".." / "assets" / "endeffector.xml"
 )
 
+ENDEFFECTOR_FT_XML_PATH = (
+    pathlib.Path(__file__).parent / ".." / "assets" / "endeffector_ft.xml"
+)
+
 
 class EndEffector(gripper.DummyHand):
-    def _build(self, name: str = "endeffector") -> None:
-        self._mjcf_root = mjcf.from_path(ENDEFFECTOR_XML_PATH)
+    def _build(self, name: str = "endeffector", ft: bool = False) -> None:
+        if not ft:
+            self._mjcf_root = mjcf.from_path(ENDEFFECTOR_XML_PATH)
+        else:
+            self._mjcf_root = mjcf.from_path(ENDEFFECTOR_FT_XML_PATH)
         self._mjcf_root.model = name
         self._tool_center_point = self._mjcf_root.find("site", "TCP")
 
 
-def make_endeffector(name: str) -> params.GripperParams:
+def make_endeffector(name: str, ft: bool = False) -> params.GripperParams:
     """Creates the endeffector."""
     name = f"{name}_gripper"
-    gripper_model = EndEffector()
+    gripper_model = EndEffector(ft=ft)
     gripper_effector = None
     return params.GripperParams(gripper_model, gripper_effector)
 

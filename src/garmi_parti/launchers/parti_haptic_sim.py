@@ -94,7 +94,7 @@ def main() -> None:
         has_hand=False,
         joint_positions=Q_TELEOP_LEFT.positions,
         attach_site=left_frame,
-        gripper=sim.make_endeffector("right"),
+        gripper=sim.make_endeffector("right", ft=True),
         actuation=arm_constants.Actuation.HAPTIC,
     )
     right = params.RobotParams(
@@ -104,7 +104,7 @@ def main() -> None:
         has_hand=False,
         joint_positions=Q_TELEOP_RIGHT.positions,
         attach_site=right_frame,
-        gripper=sim.make_gripper("left"),
+        gripper=sim.make_endeffector("left"),
         actuation=arm_constants.Actuation.HAPTIC,
     )
     robot_params = [left, right]
@@ -142,7 +142,7 @@ def main() -> None:
 
     agent = sim.TeleopAgent(
         arena,
-        specs.Array((19,), dtype=np.float32),
+        specs.Array((18,), dtype=np.float32),
         np.r_[Q_TELEOP_LEFT.positions, Q_TELEOP_RIGHT.positions],
         args.use_ros,
         args.ros_hostname,
