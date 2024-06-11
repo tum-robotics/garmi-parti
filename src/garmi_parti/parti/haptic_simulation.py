@@ -114,6 +114,16 @@ class TeleopAgent:
     def get_force_torque_obs(self, timestep: timestep_preprocessor.PreprocessorTimestep) -> np.ndarray:
         del timestep
         return self._ft
+    
+    def _correct_plane_declination(self, x: float) -> float:
+        # apply linear correction to the plane declination measurements
+        central_measurement = -2.4
+        solution = np.array([[1.37, 0.0576], [1.50, 0.0629]])  #[x, y] for y = ax + b
+        if x <= central_measurement:
+            return solution[0,0]*x + solution[0,1]
+        elif x > central_measurement:
+            return solution[1,0]*x + solution[1,1]
+
 
     def _plane_callback(self, message: dict) -> None:
         normal = [
@@ -124,7 +134,7 @@ class TeleopAgent:
         global_normal = T_0_right0[:3, :3] @ normal
         orientation = tr.quat_between_vectors([0, 0, 1], global_normal[:3])
 
-        self._plane_declination = tr.quat_to_euler(orientation)[0]
+        self._plane_declination = self._correct_plane_declination(tr.quat_to_euler(orientation)[0])
 
     def _object_callback(self, message: dict) -> None:
         # object in right arm base frame
