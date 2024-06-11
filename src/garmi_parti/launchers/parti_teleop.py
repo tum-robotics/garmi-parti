@@ -4,11 +4,25 @@ import argparse
 import logging
 
 from .. import parti
-from ..peripherals import gamepad
+from ..peripherals import joystick
 from ..teleoperation import client, interfaces, utils
 
 logging.basicConfig(level=logging.INFO)
 _logger = logging.getLogger("parti")
+
+
+class PartiJoystick(joystick.SerialJoysticks):
+    def __init__(self, client: client.Client):
+        self._client = client
+        super().__init__()
+
+    def handle_changes(self, changes: list[tuple[str, str]]) -> None:
+        for key, device_id in changes:
+            if key == "G":
+                self._client.open(device_id)
+            elif key == "R":
+                self._client.close(device_id)
+        return super().handle_changes(changes)
 
 
 def main() -> None:
@@ -20,7 +34,6 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", type=str, default="localhost")
     parser.add_argument("-p", "--port", type=int, default=13701)
-    parser.add_argument("-gp", "--gamepad-port", type=int, default=13702)
     parser.add_argument("--debug", action="store_true")
     parser.add_argument(
         "--mode",
@@ -41,11 +54,9 @@ def main() -> None:
         leader = parti.CartesianLeader(left, right)
 
     cli = client.Client(leader, args.host, args.port)
-    # gp_publisher = Publisher(args.gamepad_port, 30)
-    gamepad_handle = gamepad.GamepadHandle(cli, "localhost", args.gamepad_port)
+    joysticks = PartiJoystick(cli)
     logger = interfaces.TwoArmLogger(leader)
     client.user_interface(cli)
+    joysticks.close()
     cli.shutdown()
-    gamepad_handle.stop()
-    # gp_publisher.stop()
     logger.stop()
