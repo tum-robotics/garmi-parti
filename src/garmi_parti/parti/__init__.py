@@ -115,8 +115,8 @@ class CartesianLeader(panda.CartesianLeader, interfaces.TwoArmPandaInterface, Ti
 
     def get_command(self) -> bytes:
         displacement = containers.TwoArmDisplacement(
-            left=utils.compute_displacement(self.left) if self.paused_left else containers.Displacement(),
-            right=utils.compute_displacement(self.right) if self.paused_right else containers.Displacement(),
+            left=utils.compute_displacement(self.left) if not self.paused_left else containers.Displacement(),
+            right=utils.compute_displacement(self.right) if not self.paused_right else containers.Displacement(),
         )
         return pickle.dumps(displacement)
 
@@ -138,7 +138,7 @@ class CartesianLeader(panda.CartesianLeader, interfaces.TwoArmPandaInterface, Ti
         if end_effector == "left":
             self.paused_left = True
         elif end_effector == "right":
-            self.paused_right = False
+            self.paused_right = True
 
 class JointLeader(panda.JointLeader, interfaces.TwoArmPandaInterface, Tickable):
     """
