@@ -53,10 +53,10 @@ class Leader(interfaces.Interface):
     def start_teleop(self) -> None:
         pass
 
-    def pause(self) -> None:
+    def pause(self, end_effector: str = "") -> None:
         pass
 
-    def unpause(self) -> None:
+    def unpause(self, end_effector: str = "") -> None:
         pass
 
     def post_teleop(self) -> bool:
@@ -84,5 +84,5 @@ class Leader(interfaces.Interface):
             )
         )
 
-    def set_sync_command(self, command: bytes) -> None:
+    def set_sync_command(self, command: bytes, end_effector: str = "") -> None:
         pass

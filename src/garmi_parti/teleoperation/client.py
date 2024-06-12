@@ -58,24 +58,24 @@ class Client:
                 break
         udp.close()
 
-    def pause(self) -> None:
+    def pause(self, end_effector: str = "") -> None:
         """
         Pause the teleoperation service.
         """
-        self.rpc.pause()
-        self.teleoperator.pause()
+        self.rpc.pause(end_effector)
+        self.teleoperator.pause(end_effector)
 
-    def unpause(self) -> None:
+    def unpause(self, end_effector: str = "") -> None:
         """
         Unpause the teleoperation service.
         Triggers synchronization events of the teleoperator interfaces
         before continuing teleoperation.
         """
-        if not self.rpc.synchronize(self.teleoperator.get_sync_command()):
+        if not self.rpc.synchronize(self.teleoperator.get_sync_command(), end_effector):
             msg = "Synchronization failed"
             raise RuntimeError(msg)
-        self.rpc.unpause()
-        self.teleoperator.unpause()
+        self.rpc.unpause(end_effector)
+        self.teleoperator.unpause(end_effector)
 
     def open(self, end_effector: str = "") -> None:
         """
@@ -109,7 +109,7 @@ class Client:
             msg = "Connection failed"
             raise RuntimeError(msg)
         self.teleoperator.pre_teleop()
-        if not self.rpc.synchronize(self.teleoperator.get_sync_command()):
+        if not self.rpc.synchronize(self.teleoperator.get_sync_command(), ""):
             msg = "Synchronization failed"
             raise RuntimeError(msg)
 

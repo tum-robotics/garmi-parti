@@ -28,9 +28,17 @@ class CartesianFollower(panda.CartesianFollower, interfaces.TwoArmPandaInterface
         self._set_command(displacement.left, self.left)
         self._set_command(displacement.right, self.right)
 
-    def pause(self) -> None:
-        self.left.arm.stop_controller()
-        self.right.arm.stop_controller()
+    def pause(self, end_effector: str = "") -> None:
+        if end_effector == "left":
+            self.left.arm.stop_controller()
+        if end_effector == "right":
+            self.right.arm.stop_controller()
+
+    def unpause(self, end_effector: str = "") -> None:
+        if end_effector == "left":
+            self._start_teleop(self.left)
+        if end_effector == "right":
+            self._start_teleop(self.right)
 
 
 class JointFollower(panda.JointFollower, interfaces.TwoArmPandaInterface):
@@ -53,9 +61,25 @@ class JointFollower(panda.JointFollower, interfaces.TwoArmPandaInterface):
         if joint_states.right is not None:
             self._set_command(joint_states.right, self.right)
 
-    def pause(self) -> None:
-        self.left.arm.stop_controller()
-        self.right.arm.stop_controller()
+    def pause(self, end_effector: str = "") -> None:
+        if end_effector == "left":
+            self.left.arm.stop_controller()
+        if end_effector == "right":
+            self.right.arm.stop_controller()
 
-    def set_sync_command(self, command: bytes) -> None:
-        self.move_arms(pickle.loads(command))
+    def unpause(self, end_effector: str = "") -> None:
+        if end_effector == "left":
+            self._start_teleop(self.left)
+        if end_effector == "right":
+            self._start_teleop(self.right)
+
+    def set_sync_command(self, command: bytes, end_effector: str = "") -> None:
+        joint_positions: containers.TwoArmJointPositions = pickle.loads(command)
+        if end_effector in ("left", "") and joint_positions.left is not None:
+            self.left.arm.move_to_joint_position(
+                joint_positions.left.positions, self.left.params.speed_factor
+            )
+        if end_effector in ("right", "") and joint_positions.right is not None:
+            self.right.arm.move_to_joint_position(
+                joint_positions.right.positions, self.right.params.speed_factor
+            )

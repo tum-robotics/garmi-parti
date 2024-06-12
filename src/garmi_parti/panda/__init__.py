@@ -50,10 +50,12 @@ class CartesianLeader(interfaces.PandaInterface):
         )
         container.controller.set_control(np.r_[force_d, torque_d])
 
-    def pause(self) -> None:
+    def pause(self, end_effector: str = "") -> None:
+        del end_effector
         self.paused = True
 
-    def unpause(self) -> None:
+    def unpause(self, end_effector: str = "") -> None:
+        del end_effector
         self.panda.reinitialize()
         self.paused = False
 
@@ -103,10 +105,12 @@ class JointLeader(interfaces.PandaInterface):
     ) -> containers.JointPositions:
         return containers.JointPositions(container.arm.get_state().q)
 
-    def pause(self) -> None:
+    def pause(self, end_effector: str = "") -> None:
+        del end_effector
         self.panda.arm.stop_controller()
 
-    def unpause(self) -> None:
+    def unpause(self, end_effector: str = "") -> None:
+        del end_effector
         self.start_teleop()
 
 
@@ -160,10 +164,12 @@ class CartesianFollower(interfaces.PandaInterface):
         )
         container.controller.set_control(position_d, orientation_d.as_quat())
 
-    def pause(self) -> None:
+    def pause(self, end_effector: str = "") -> None:
+        del end_effector
         self.panda.arm.stop_controller()
 
-    def unpause(self) -> None:
+    def unpause(self, end_effector: str = "") -> None:
+        del end_effector
         self.start_teleop()
 
 
@@ -203,11 +209,14 @@ class JointFollower(interfaces.PandaInterface):
         dqd = joint_states.dq.velocites - container.params.gain_drift * error
         container.controller.set_control(dqd)
 
-    def pause(self) -> None:
+    def pause(self, end_effector: str = "") -> None:
+        del end_effector
         self.panda.arm.stop_controller()
 
-    def unpause(self) -> None:
+    def unpause(self, end_effector: str = "") -> None:
+        del end_effector
         self.start_teleop()
 
-    def set_sync_command(self, command: bytes) -> None:
+    def set_sync_command(self, command: bytes, end_effector: str = "") -> None:
+        del end_effector
         self.move_arm(pickle.loads(command))

@@ -131,9 +131,11 @@ class CartesianLeader(panda.CartesianLeader, interfaces.TwoArmPandaInterface, Ti
         self._set_command(self.right, wrench.right)
         self.tick()
 
-    def unpause(self) -> None:
-        self.left.reinitialize()
-        self.right.reinitialize()
+    def unpause(self, end_effector: str = "") -> None:
+        if end_effector == "left":
+            self.left.reinitialize()
+        elif end_effector == "right":
+            self.right.reinitialize()
         self.paused = False
 
 
@@ -194,9 +196,11 @@ class JointLeader(panda.JointLeader, interfaces.TwoArmPandaInterface, Tickable):
             self._set_command(self.right, joint_states.right)
         self.tick()
 
-    def pause(self) -> None:
-        self.left.arm.stop_controller()
-        self.right.arm.stop_controller()
+    def pause(self, end_effector: str = "") -> None:
+        if end_effector == "left":
+            self.left.arm.stop_controller()
+        elif end_effector == "right":
+            self.right.arm.stop_controller()
 
     def get_sync_command(self) -> bytes:
         return pickle.dumps(
