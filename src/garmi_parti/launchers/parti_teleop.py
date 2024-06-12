@@ -16,13 +16,29 @@ class PartiJoystick(joystick.SerialJoysticks):
         self._client = client
         super().__init__()
 
-    def handle_changes(self, changes: list[tuple[str, str]]) -> None:
-        for key, device_id in changes:
-            if key == "G":
-                self._client.open(device_id)
-            elif key == "R":
-                self._client.close(device_id)
-        return super().handle_changes(changes)
+    def handle_changes(
+        self, changes: list[tuple[str, str] | tuple[str, str, int]]
+    ) -> None:
+        for change in changes:
+            if len(change) == 2:
+                key, device_id = change
+                if key == "G":
+                    self._client.open(device_id)
+                elif key == "R":
+                    self._client.close(device_id)
+                _logger.info("Button %s pressed on device %s", key, device_id)
+            elif len(change) == 3:
+                key, device_id, state = change
+                _logger.info(
+                    "Analog trigger %s crossed threshold on device %s, new state: %s",
+                    key,
+                    device_id,
+                    state,
+                )
+                if state >= 80:
+                    self._client.unpause()
+                else:
+                    self._client.pause()
 
 
 def main() -> None:
@@ -54,6 +70,7 @@ def main() -> None:
         leader = parti.CartesianLeader(left, right)
 
     cli = client.Client(leader, args.host, args.port)
+    cli.pause()
     joysticks = PartiJoystick(cli)
     logger = interfaces.TwoArmLogger(leader)
     client.user_interface(cli)

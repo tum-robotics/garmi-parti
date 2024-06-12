@@ -8,6 +8,7 @@ import serial
 import serial.tools.list_ports
 
 _logger = logging.getLogger("gamepad")
+logging.basicConfig(level=logging.INFO)
 
 
 class SerialJoysticks:
@@ -19,7 +20,7 @@ class SerialJoysticks:
 
     def parse_line(self, line: str, device_id: str) -> None:
         values = line.split(",")
-        changes = []
+        changes: list[tuple[str, str] | tuple[str, str, int]] = []
         for value in values:
             key, state = value.split("=")
             if key in ["R", "G", "B", "Y", "T"]:
@@ -31,14 +32,41 @@ class SerialJoysticks:
                 ):
                     changes.append((key, device_id))
                 self.previous_states[(device_id, key)] = state
+            elif key == "A":
+                try:
+                    state_int = int(state)
+                    previous_state = self.previous_states.get((device_id, key), None)
+                    if previous_state is not None:
+                        previous_state_int = int(previous_state)
+                        if (previous_state_int < 80 and state_int >= 80) or (
+                            previous_state_int >= 80 and state_int < 80
+                        ):
+                            changes.append((key, device_id, state_int))
+                    self.previous_states[(device_id, key)] = state
+                except ValueError:
+                    _logger.error(
+                        "Invalid integer value for A on %s: %s", device_id, state
+                    )
+
         if changes:
             self.handle_changes(changes)
 
-    def handle_changes(self, changes: list[tuple[str, str]]) -> None:
+    def handle_changes(
+        self, changes: list[tuple[str, str] | tuple[str, str, int]]
+    ) -> None:
         # User-defined callback to handle changes
-        _logger.info("Butotn press detected")
-        for key, device_id in changes:
-            _logger.info("Button %s pressed on device %s", key, device_id)
+        for change in changes:
+            if len(change) == 2:
+                key, device_id = change
+                _logger.info("Button %s pressed on device %s", key, device_id)
+            elif len(change) == 3:
+                key, device_id, state = change
+                _logger.info(
+                    "Analog trigger %s crossed threshold on device %s, new state: %d",
+                    key,
+                    device_id,
+                    state,
+                )
 
     def find_ports(self) -> list[str]:
         ports = serial.tools.list_ports.comports()
