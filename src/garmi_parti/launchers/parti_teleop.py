@@ -36,9 +36,9 @@ class PartiJoystick(joystick.SerialJoysticks):
                     state,
                 )
                 if state >= 80:
-                    self._client.unpause()
+                    self._client.unpause(device_id)
                 else:
-                    self._client.pause()
+                    self._client.pause(device_id)
 
 
 def main() -> None:
