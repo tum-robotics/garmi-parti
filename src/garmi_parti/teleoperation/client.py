@@ -36,6 +36,7 @@ class Client:
         self.port = port
         self.teleoperator = teleoperator
         self.running_udp = False
+        self.mux = threading.Lock()
         self._start()
 
     def _run_udp(self) -> None:
@@ -62,8 +63,9 @@ class Client:
         """
         Pause the teleoperation service.
         """
-        self.rpc.pause(end_effector)
-        self.teleoperator.pause(end_effector)
+        with self.mux:
+            self.rpc.pause(end_effector)
+            self.teleoperator.pause(end_effector)
 
     def unpause(self, end_effector: str = "") -> None:
         """
@@ -71,23 +73,26 @@ class Client:
         Triggers synchronization events of the teleoperator interfaces
         before continuing teleoperation.
         """
-        if not self.rpc.synchronize(self.teleoperator.get_sync_command(), end_effector):
-            msg = "Synchronization failed"
-            raise RuntimeError(msg)
-        self.rpc.unpause(end_effector)
-        self.teleoperator.unpause(end_effector)
+        with self.mux:
+            if not self.rpc.synchronize(self.teleoperator.get_sync_command(), end_effector):
+                msg = "Synchronization failed"
+                raise RuntimeError(msg)
+            self.rpc.unpause(end_effector)
+            self.teleoperator.unpause(end_effector)
 
     def open(self, end_effector: str = "") -> None:
         """
         Sends a request to open an end-effector.
         """
-        self.rpc.open(end_effector)
+        with self.mux:
+            self.rpc.open(end_effector)
 
     def close(self, end_effector: str = "") -> None:
         """
         Sends a request to close an end-effector.
         """
-        self.rpc.close(end_effector)
+        with self.mux:
+            self.rpc.close(end_effector)
 
     def shutdown(self) -> None:
         """
