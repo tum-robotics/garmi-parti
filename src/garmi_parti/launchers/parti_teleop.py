@@ -12,13 +12,18 @@ _logger = logging.getLogger("parti")
 
 
 class PartiJoystick(joystick.SerialJoysticks):
-    def __init__(self, client: client.Client):
-        self._client = client
+    def __init__(self) -> None:
+        self._client: client.Client | None = None
         super().__init__()
+
+    def set_client(self, teleop_client: client.Client) -> None:
+        self._client = teleop_client
 
     def handle_changes(
         self, changes: list[tuple[str, str] | tuple[str, str, int]]
     ) -> None:
+        if self._client is None:
+            return
         for change in changes:
             if len(change) == 2:
                 key, device_id = change
@@ -35,7 +40,7 @@ class PartiJoystick(joystick.SerialJoysticks):
                     device_id,
                     state,
                 )
-                if state >= 80:
+                if state >= 560:
                     self._client.unpause(device_id)
                 else:
                     self._client.pause(device_id)
@@ -69,10 +74,11 @@ def main() -> None:
     elif args.mode == "cartesian":
         leader = parti.CartesianLeader(left, right)
 
+    joysticks = PartiJoystick()
+    joysticks.start_reading()
     cli = client.Client(leader, args.host, args.port)
     cli.pause()
-    joysticks = PartiJoystick(cli)
-    joysticks.start_reading()
+    joysticks.set_client(cli)
     logger = interfaces.TwoArmLogger(leader)
     client.user_interface(cli)
     joysticks.close()

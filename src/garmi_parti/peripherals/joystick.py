@@ -8,7 +8,6 @@ import serial
 import serial.tools.list_ports
 
 _logger = logging.getLogger("gamepad")
-logging.basicConfig(level=logging.INFO)
 
 
 class SerialJoysticks:
@@ -16,7 +15,6 @@ class SerialJoysticks:
         self.threads: list[threading.Thread] = []
         self.stop_threads = threading.Event()
         self.previous_states: dict[tuple[str, str], str] = {}
-        logging.basicConfig(level=logging.INFO)
 
     def parse_line(self, line: str, device_id: str) -> None:
         values = line.split(",")
@@ -38,8 +36,8 @@ class SerialJoysticks:
                     previous_state = self.previous_states.get((device_id, key), None)
                     if previous_state is not None:
                         previous_state_int = int(previous_state)
-                        if (previous_state_int < 80 and state_int >= 80) or (
-                            previous_state_int >= 80 and state_int < 80
+                        if (previous_state_int < 560 and state_int >= 560) or (
+                            previous_state_int >= 560 and state_int < 560
                         ):
                             changes.append((key, device_id, state_int))
                     self.previous_states[(device_id, key)] = state
