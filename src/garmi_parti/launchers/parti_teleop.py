@@ -72,6 +72,7 @@ def main() -> None:
     cli = client.Client(leader, args.host, args.port)
     cli.pause()
     joysticks = PartiJoystick(cli)
+    joysticks.start_reading()
     logger = interfaces.TwoArmLogger(leader)
     client.user_interface(cli)
     joysticks.close()
