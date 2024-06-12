@@ -115,8 +115,12 @@ class CartesianLeader(panda.CartesianLeader, interfaces.TwoArmPandaInterface, Ti
 
     def get_command(self) -> bytes:
         displacement = containers.TwoArmDisplacement(
-            left=utils.compute_displacement(self.left) if not self.paused_left else containers.Displacement(),
-            right=utils.compute_displacement(self.right) if not self.paused_right else containers.Displacement(),
+            left=utils.compute_displacement(self.left)
+            if not self.paused_left
+            else containers.Displacement(),
+            right=utils.compute_displacement(self.right)
+            if not self.paused_right
+            else containers.Displacement(),
         )
         return pickle.dumps(displacement)
 
@@ -127,18 +131,19 @@ class CartesianLeader(panda.CartesianLeader, interfaces.TwoArmPandaInterface, Ti
         self.tick()
 
     def unpause(self, end_effector: str = "") -> None:
-        if end_effector == "left":
+        if end_effector in ("left", ""):
             self.left.reinitialize()
             self.paused_left = False
-        elif end_effector == "right":
+        elif end_effector in ("right", ""):
             self.right.reinitialize()
             self.paused_right = False
 
     def pause(self, end_effector: str = "") -> None:
-        if end_effector == "left":
+        if end_effector in ("left", ""):
             self.paused_left = True
-        elif end_effector == "right":
+        elif end_effector in ("right", ""):
             self.paused_right = True
+
 
 class JointLeader(panda.JointLeader, interfaces.TwoArmPandaInterface, Tickable):
     """
@@ -198,9 +203,9 @@ class JointLeader(panda.JointLeader, interfaces.TwoArmPandaInterface, Tickable):
         self.tick()
 
     def pause(self, end_effector: str = "") -> None:
-        if end_effector == "left":
+        if end_effector in ("left", ""):
             self.left.arm.stop_controller()
-        elif end_effector == "right":
+        elif end_effector in ("right", ""):
             self.right.arm.stop_controller()
 
     def get_sync_command(self) -> bytes:

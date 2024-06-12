@@ -29,15 +29,15 @@ class CartesianFollower(panda.CartesianFollower, interfaces.TwoArmPandaInterface
         self._set_command(displacement.right, self.right)
 
     def pause(self, end_effector: str = "") -> None:
-        if end_effector == "left":
+        if end_effector in ("left", ""):
             self.left.arm.stop_controller()
-        if end_effector == "right":
+        if end_effector in ("right", ""):
             self.right.arm.stop_controller()
 
     def unpause(self, end_effector: str = "") -> None:
-        if end_effector == "left":
+        if end_effector in ("left", ""):
             self._start_teleop(self.left)
-        if end_effector == "right":
+        if end_effector in ("right", ""):
             self._start_teleop(self.right)
 
 
@@ -62,15 +62,15 @@ class JointFollower(panda.JointFollower, interfaces.TwoArmPandaInterface):
             self._set_command(joint_states.right, self.right)
 
     def pause(self, end_effector: str = "") -> None:
-        if end_effector == "left":
+        if end_effector in ("left", ""):
             self.left.arm.stop_controller()
-        if end_effector == "right":
+        if end_effector in ("right", ""):
             self.right.arm.stop_controller()
 
     def unpause(self, end_effector: str = "") -> None:
-        if end_effector == "left":
+        if end_effector in ("left", ""):
             self._start_teleop(self.left)
-        if end_effector == "right":
+        if end_effector in ("right", ""):
             self._start_teleop(self.right)
 
     def set_sync_command(self, command: bytes, end_effector: str = "") -> None:

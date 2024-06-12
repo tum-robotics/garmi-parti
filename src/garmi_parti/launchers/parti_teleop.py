@@ -14,6 +14,7 @@ _logger = logging.getLogger("parti")
 class PartiJoystick(joystick.SerialJoysticks):
     def __init__(self) -> None:
         self._client: client.Client | None = None
+        self.gripper = {"left": True, "right": True}
         super().__init__()
 
     def set_client(self, teleop_client: client.Client) -> None:
@@ -28,9 +29,13 @@ class PartiJoystick(joystick.SerialJoysticks):
             if len(change) == 2:
                 key, device_id = change
                 if key == "G":
-                    self._client.open(device_id)
+                    self.gripper[device_id] = not self.gripper[device_id]
+                    if self.gripper[device_id]:
+                        self._client.open(device_id)
+                    else:
+                        self._client.close(device_id)
                 elif key == "R":
-                    self._client.close(device_id)
+                    self._client.shutdown()
                 _logger.info("Button %s pressed on device %s", key, device_id)
             elif len(change) == 3:
                 key, device_id, state = change
@@ -76,9 +81,16 @@ def main() -> None:
 
     joysticks = PartiJoystick()
     joysticks.start_reading()
+
     cli = client.Client(leader, args.host, args.port)
+    leader.left.arm.stop_controller()
+    leader.right.arm.stop_controller()
     cli.pause()
+    input("Press enter to start PARTI")
+    leader.left.arm.start_controller(leader.left.controller)
+    leader.right.arm.start_controller(leader.right.controller)
     joysticks.set_client(cli)
+
     logger = interfaces.TwoArmLogger(leader)
     client.user_interface(cli)
     joysticks.close()
