@@ -208,6 +208,12 @@ class JointLeader(panda.JointLeader, interfaces.TwoArmPandaInterface, Tickable):
         elif end_effector in ("right", ""):
             self.right.arm.stop_controller()
 
+    def unpause(self, end_effector: str = "") -> None:
+        if end_effector in ("left", ""):
+            self._start_teleop(self.left)
+        if end_effector in ("right", ""):
+            self._start_teleop(self.right)
+
     def get_sync_command(self) -> bytes:
         return pickle.dumps(
             containers.TwoArmJointPositions(
