@@ -67,6 +67,11 @@ class JointFollower(panda.JointFollower, interfaces.TwoArmPandaInterface):
         if end_effector in ("right", ""):
             self.right.arm.stop_controller()
 
+    def pre_teleop(self) -> bool:
+        self._pre_teleop(self.left)
+        self._pre_teleop(self.right)
+        return True
+
     def unpause(self, end_effector: str = "") -> None:
         if end_effector in ("left", ""):
             self._start_teleop(self.left)
@@ -75,11 +80,13 @@ class JointFollower(panda.JointFollower, interfaces.TwoArmPandaInterface):
 
     def set_sync_command(self, command: bytes, end_effector: str = "") -> None:
         joint_positions: containers.TwoArmJointPositions = pickle.loads(command)
-        if end_effector in ("left", "") and joint_positions.left is not None:
+        if end_effector == "":
+            self.move_arms(joint_positions)
+        if end_effector == "left" and joint_positions.left is not None:
             self.left.arm.move_to_joint_position(
                 joint_positions.left.positions, self.left.params.speed_factor
             )
-        if end_effector in ("right", "") and joint_positions.right is not None:
+        if end_effector == "right" and joint_positions.right is not None:
             self.right.arm.move_to_joint_position(
                 joint_positions.right.positions, self.right.params.speed_factor
             )
