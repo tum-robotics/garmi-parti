@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import time
 
 from .. import parti
 from ..peripherals import joystick
@@ -15,6 +16,7 @@ class PartiJoystick(joystick.SerialJoysticks):
     def __init__(self) -> None:
         self._client: client.Client | None = None
         self.gripper = {"left": True, "right": True}
+        self.stop = False
         super().__init__()
 
     def set_client(self, teleop_client: client.Client) -> None:
@@ -36,6 +38,7 @@ class PartiJoystick(joystick.SerialJoysticks):
                         self._client.close(device_id)
                 elif key == "R":
                     self._client.shutdown()
+                    self.stop = True
                 _logger.info("Button %s pressed on device %s", key, device_id)
             elif len(change) == 3:
                 key, device_id, state = change
@@ -85,9 +88,11 @@ def main() -> None:
     cli = client.Client(leader, args.host, args.port)
     cli.pause()
     joysticks.set_client(cli)
-
     logger = interfaces.TwoArmLogger(leader)
-    client.user_interface(cli)
+
+    while not joysticks.stop:
+        time.sleep(1)
+
     joysticks.close()
     cli.shutdown()
     logger.stop()
