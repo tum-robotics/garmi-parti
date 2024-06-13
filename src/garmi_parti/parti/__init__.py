@@ -203,10 +203,11 @@ class JointLeader(panda.JointLeader, interfaces.TwoArmPandaInterface, Tickable):
         self.tick()
 
     def pause(self, end_effector: str = "") -> None:
-        if end_effector in ("left", ""):
-            self.left.arm.stop_controller()
-        elif end_effector in ("right", ""):
-            self.right.arm.stop_controller()
+        pass
+        # if end_effector in ("left", ""):
+        #     self.left.arm.stop_controller()
+        # elif end_effector in ("right", ""):
+        #     self.right.arm.stop_controller()
 
     def unpause(self, end_effector: str = "") -> None:
         if end_effector in ("left", ""):
