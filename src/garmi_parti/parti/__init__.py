@@ -134,14 +134,14 @@ class CartesianLeader(panda.CartesianLeader, interfaces.TwoArmPandaInterface, Ti
         if end_effector in ("left", ""):
             self.left.reinitialize()
             self.paused_left = False
-        elif end_effector in ("right", ""):
+        if end_effector in ("right", ""):
             self.right.reinitialize()
             self.paused_right = False
 
     def pause(self, end_effector: str = "") -> None:
         if end_effector in ("left", ""):
             self.paused_left = True
-        elif end_effector in ("right", ""):
+        if end_effector in ("right", ""):
             self.paused_right = True
 
 
@@ -205,7 +205,7 @@ class JointLeader(panda.JointLeader, interfaces.TwoArmPandaInterface, Tickable):
     def pause(self, end_effector: str = "") -> None:
         if end_effector in ("left", ""):
             self.left.arm.stop_controller()
-        elif end_effector in ("right", ""):
+        if end_effector in ("right", ""):
             self.right.arm.stop_controller()
 
     def unpause(self, end_effector: str = "") -> None:
