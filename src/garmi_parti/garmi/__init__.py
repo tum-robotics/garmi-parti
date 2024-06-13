@@ -67,11 +67,6 @@ class JointFollower(panda.JointFollower, interfaces.TwoArmPandaInterface):
         if end_effector in ("right", ""):
             self.right.arm.stop_controller()
 
-    def pre_teleop(self) -> bool:
-        self._pre_teleop(self.left)
-        self._pre_teleop(self.right)
-        return True
-
     def unpause(self, end_effector: str = "") -> None:
         if end_effector in ("left", ""):
             self._start_teleop(self.left)
