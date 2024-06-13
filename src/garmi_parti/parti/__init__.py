@@ -84,8 +84,8 @@ class CartesianLeader(panda.CartesianLeader, interfaces.TwoArmPandaInterface, Ti
     ) -> None:
         Tickable.__init__(self, window_size, interval, logger)  # type: ignore[call-arg]
 
-        self.paused_left = False
-        self.paused_right = False
+        self.paused_left = True
+        self.paused_right = True
 
         q_idle = containers.TwoArmJointPositions(left=Q_IDLE_LEFT, right=Q_IDLE_RIGHT)
         q_teleop = containers.TwoArmJointPositions(

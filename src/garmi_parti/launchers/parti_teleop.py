@@ -83,12 +83,7 @@ def main() -> None:
     joysticks.start_reading()
 
     cli = client.Client(leader, args.host, args.port)
-    leader.left.arm.stop_controller()
-    leader.right.arm.stop_controller()
     cli.pause()
-    input("Press enter to start PARTI")
-    leader.left.arm.start_controller(leader.left.controller)
-    leader.right.arm.start_controller(leader.right.controller)
     joysticks.set_client(cli)
 
     logger = interfaces.TwoArmLogger(leader)
