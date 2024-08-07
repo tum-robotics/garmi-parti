@@ -84,7 +84,8 @@ class CartesianLeader(panda.CartesianLeader, interfaces.TwoArmPandaInterface, Ti
     ) -> None:
         Tickable.__init__(self, window_size, interval, logger)  # type: ignore[call-arg]
 
-        self.paused = False
+        self.paused_left = True
+        self.paused_right = True
 
         q_idle = containers.TwoArmJointPositions(left=Q_IDLE_LEFT, right=Q_IDLE_RIGHT)
         q_teleop = containers.TwoArmJointPositions(
@@ -113,15 +114,13 @@ class CartesianLeader(panda.CartesianLeader, interfaces.TwoArmPandaInterface, Ti
         )
 
     def get_command(self) -> bytes:
-        if self.paused:
-            return pickle.dumps(
-                containers.TwoArmDisplacement(
-                    containers.Displacement(), containers.Displacement()
-                )
-            )
         displacement = containers.TwoArmDisplacement(
-            left=utils.compute_displacement(self.left),
-            right=utils.compute_displacement(self.right),
+            left=utils.compute_displacement(self.left)
+            if not self.paused_left
+            else containers.Displacement(),
+            right=utils.compute_displacement(self.right)
+            if not self.paused_right
+            else containers.Displacement(),
         )
         return pickle.dumps(displacement)
 
@@ -131,10 +130,19 @@ class CartesianLeader(panda.CartesianLeader, interfaces.TwoArmPandaInterface, Ti
         self._set_command(self.right, wrench.right)
         self.tick()
 
-    def unpause(self) -> None:
-        self.left.reinitialize()
-        self.right.reinitialize()
-        self.paused = False
+    def unpause(self, end_effector: str = "") -> None:
+        if end_effector in ("left", ""):
+            self.left.reinitialize()
+            self.paused_left = False
+        if end_effector in ("right", ""):
+            self.right.reinitialize()
+            self.paused_right = False
+
+    def pause(self, end_effector: str = "") -> None:
+        if end_effector in ("left", ""):
+            self.paused_left = True
+        if end_effector in ("right", ""):
+            self.paused_right = True
 
 
 class JointLeader(panda.JointLeader, interfaces.TwoArmPandaInterface, Tickable):
@@ -181,20 +189,30 @@ class JointLeader(panda.JointLeader, interfaces.TwoArmPandaInterface, Tickable):
 
     def get_command(self) -> bytes:
         return pickle.dumps(
-            containers.TwoArmJointVelocities(
+            containers.TwoArmJointStates(
                 left=self._get_command(self.left), right=self._get_command(self.right)
             )
         )
 
     def set_command(self, command: bytes) -> None:
-        joint_torques: containers.TwoArmJointTorques = pickle.loads(command)
-        self._set_command(self.left, joint_torques.left)
-        self._set_command(self.right, joint_torques.right)
+        joint_states: containers.TwoArmJointStates = pickle.loads(command)
+        if joint_states.left is not None:
+            self._set_command(self.left, joint_states.left)
+        if joint_states.right is not None:
+            self._set_command(self.right, joint_states.right)
         self.tick()
 
-    def pause(self) -> None:
-        self.left.arm.stop_controller()
-        self.right.arm.stop_controller()
+    def pause(self, end_effector: str = "") -> None:
+        if end_effector in ("left", ""):
+            self.left.arm.stop_controller()
+        if end_effector in ("right", ""):
+            self.right.arm.stop_controller()
+
+    def unpause(self, end_effector: str = "") -> None:
+        if end_effector in ("left", ""):
+            self._start_teleop(self.left)
+        if end_effector in ("right", ""):
+            self._start_teleop(self.right)
 
     def get_sync_command(self) -> bytes:
         return pickle.dumps(

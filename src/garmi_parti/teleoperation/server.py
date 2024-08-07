@@ -87,9 +87,9 @@ class Server:
         _logger.info("New teleoperation connection")
         return bool(self.teleoperator.pre_teleop())
 
-    def _synchronize(self, command: bytes = b"") -> bool:
+    def _synchronize(self, command: bytes = b"", end_effector: str = "") -> bool:
         _logger.info("Synchronizing teleoperators")
-        self.teleoperator.set_sync_command(command)
+        self.teleoperator.set_sync_command(command, end_effector)
         return True
 
     def _start(self) -> None:
@@ -109,17 +109,17 @@ class Server:
                 self.udp_thread.join()
             self.teleoperator.post_teleop()
 
-    def pause(self) -> None:
+    def pause(self, end_effector: str = "") -> None:
         """
         Pause teleoperation service.
         """
-        self.teleoperator.pause()
+        self.teleoperator.pause(end_effector)
 
-    def unpause(self) -> None:
+    def unpause(self, end_effector: str = "") -> None:
         """
         Unpause teleoperation service.
         """
-        self.teleoperator.unpause()
+        self.teleoperator.unpause(end_effector)
 
     def open(self, end_effector: str = "") -> None:
         """
