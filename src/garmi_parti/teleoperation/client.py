@@ -14,10 +14,10 @@ from . import interfaces, utils
 
 _logger = logging.getLogger("teleoperation.client")
 
-UDP_TIMEOUT = 2.0
+UDP_TIMEOUT = 10.0
 UDP_TIMESTEP = 1e-3
 
-socket.setdefaulttimeout(5.0)
+socket.setdefaulttimeout(10.0)
 
 
 class Client:

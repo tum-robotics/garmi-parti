@@ -17,7 +17,7 @@ import pathlib
 import numpy as np
 from dm_control import composer
 from dm_env import specs
-from dm_robotics.agentflow.preprocessors import observation_transforms
+from dm_robotics.agentflow.preprocessors import observation_transforms, rewards
 from dm_robotics.moma.tasks import run_loop
 from dm_robotics.panda import arm_constants, environment
 from dm_robotics.panda import parameters as params
@@ -181,6 +181,7 @@ def main() -> None:
                     "force_torque"
                 ]
             ),
+            rewards.ComputeReward(sim.goal_reward),
         ]
     )
 

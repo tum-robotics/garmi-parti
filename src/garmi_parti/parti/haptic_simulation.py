@@ -8,7 +8,7 @@ import csv
 import pathlib
 import pickle
 import threading
-
+from dm_robotics.agentflow import spec_utils
 import dm_env
 import numpy as np
 import panda_py
@@ -66,7 +66,7 @@ class TeleopAgent:
         self._obs: list[dict[str, np.ndarray]] = []
         self._object_qpos = np.array([0, 0, 0])
         self._object_qpos_offset = np.array([0.04, 0.023, 0.05])
-        self._plane_declination = -0.1745
+        self._plane_declination = -0.1990
         self._ft = np.zeros(6)
 
         if use_ros:
@@ -114,7 +114,7 @@ class TeleopAgent:
     def get_force_torque_obs(self, timestep: timestep_preprocessor.PreprocessorTimestep) -> np.ndarray:
         del timestep
         return self._ft
-    
+
     def _correct_plane_declination(self, x: float) -> float:
         # apply linear correction to the plane declination measurements
         central_measurement = -2.4
@@ -468,3 +468,11 @@ class FollowerSensor(robot_arm_sensor.RobotArmSensor):
 
     def close(self) -> None:
         self.context.term()
+
+def goal_reward(observation: spec_utils.ObservationValue):
+  """Computes reward."""
+  error = np.array([0,-0.05, 2.356])-observation["virtual_object"]
+  return -np.linalg.norm(error)
+  goal_distance = np.linalg.norm(observation['goal_pose'][:3] -
+                                 observation['panda_tcp_pos'])
+  return np.clip(1.0 - goal_distance, 0, 1)
