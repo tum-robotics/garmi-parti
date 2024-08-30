@@ -13,6 +13,8 @@ _logger = logging.getLogger("parti")
 
 
 class PartiJoystick(joystick.SerialJoysticks):
+    """Interface class for the integrated joystick handles of the PARTI system."""
+
     def __init__(self) -> None:
         self._client: client.Client | None = None
         self.gripper = {"left": True, "right": True}
@@ -20,6 +22,7 @@ class PartiJoystick(joystick.SerialJoysticks):
         super().__init__()
 
     def set_client(self, teleop_client: client.Client) -> None:
+        """Sets the teleop network client used to send button commands."""
         self._client = teleop_client
 
     def handle_changes(
@@ -83,7 +86,7 @@ def main() -> None:
         leader = parti.CartesianLeader(left, right)
 
     joysticks = PartiJoystick()
-    joysticks.start_reading()
+    joysticks.start()
 
     cli = client.Client(leader, args.host, args.port)
     if args.mode == "joint":

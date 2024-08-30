@@ -61,6 +61,9 @@ class Leader(interfaces.Interface):
 
     def post_teleop(self) -> bool:
         self.context.term()
+        self.thread.join()
+        self.socket_pub.close()
+        self.context_pub.term()
         return True
 
     def get_command(self) -> bytes:

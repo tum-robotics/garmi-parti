@@ -24,8 +24,8 @@ class Follower(garmi.JointFollower):
         self.close("left")
         self.close("right")
 
-    def pause(self) -> None:
+    def pause(self, end_effector: str = "") -> None:
         pass
 
-    def unpause(self) -> None:
+    def unpause(self, end_effector: str = "") -> None:
         pass

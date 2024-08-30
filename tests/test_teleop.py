@@ -76,7 +76,7 @@ class TestNetworking(unittest.TestCase):
         if leader:
             assert teleop.get_sync_command.call_count == 2
         else:
-            teleop.set_sync_command.assert_called_with(SYNC_CMD)
+            teleop.set_sync_command.assert_called_with(SYNC_CMD, "")
             assert teleop.set_sync_command.call_count == 2
 
             teleop.open.assert_any_call("left")

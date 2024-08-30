@@ -119,6 +119,7 @@ class TeleopAgent:
     def get_force_torque_obs(
         self, timestep: timestep_preprocessor.PreprocessorTimestep
     ) -> np.ndarray:
+        """Get observation for force-torque sensor."""
         del timestep
         return self._ft
 
@@ -282,30 +283,36 @@ class SceneEffector(effector.Effector):
     def get_object_observations(
         self, timestep: timestep_preprocessor.PreprocessorTimestep
     ) -> np.ndarray:
+        """Get observations from object tracker."""
         del timestep
         return self._object_obs
 
     def get_virtual_object_observations(
         self, timestep: timestep_preprocessor.PreprocessorTimestep
     ) -> np.ndarray:
+        """Get observations from object prediction."""
         del timestep
         return self._virtual_object_obs
 
     def get_plane_observations(
         self, timestep: timestep_preprocessor.PreprocessorTimestep
     ) -> np.ndarray:
+        """Get observations from plane tracker."""
         del timestep
         return self._plane_obs
 
     def get_virtual_plane_observations(
         self, timestep: timestep_preprocessor.PreprocessorTimestep
     ) -> np.ndarray:
+        """Get observations from plane prediction."""
         del timestep
         return self._virtual_plane_obs
 
     def get_updating_observations(
         self, timestep: timestep_preprocessor.PreprocessorTimestep
     ) -> np.ndarray:
+        """Get observation for `updating` state. The state describes whether the
+        scene is currently updated using sensors from the remote setup or using prediction."""
         del timestep
         return self._updating_obs
 
@@ -355,6 +362,8 @@ ENDEFFECTOR_FT_XML_PATH = (
 
 
 class EndEffector(gripper.DummyHand):
+    """Builds a MuJoCo model of a Franka end-effector without control interface."""
+
     def _build(self, name: str = "endeffector", ft: bool = False) -> None:
         if not ft:
             self._mjcf_root = mjcf.from_path(ENDEFFECTOR_XML_PATH)
@@ -418,9 +427,11 @@ def move_arms(
 
 
 class FollowerSensor(robot_arm_sensor.RobotArmSensor):
-    def __init__(self, arm: arm.Panda):
+    """A virtual sensor that wraps the state of the remote robot."""
+
+    def __init__(self, panda_arm: arm.Panda):  # pylint: disable=super-init-not-called
         self._name = "follower"
-        self._arm = arm
+        self._arm = panda_arm
         self._follower_joint_state = containers.TwoArmJointStates(left=None, right=None)
         self._observables = {
             self.get_obs_key(

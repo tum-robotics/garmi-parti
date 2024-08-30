@@ -28,6 +28,7 @@ class CartesianFollower(panda.CartesianFollower, interfaces.TwoArmPandaInterface
         self._set_command(displacement.left, self.left)
         self._set_command(displacement.right, self.right)
 
+    # pylint: disable=duplicate-code
     def pause(self, end_effector: str = "") -> None:
         if end_effector in ("left", ""):
             self.left.arm.stop_controller()
@@ -47,6 +48,7 @@ class JointFollower(panda.JointFollower, interfaces.TwoArmPandaInterface):
     in joint space.
     """
 
+    # pylint: disable=duplicate-code
     def get_command(self) -> bytes:
         return pickle.dumps(
             containers.TwoArmJointStates(

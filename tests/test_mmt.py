@@ -15,6 +15,9 @@ from garmi_parti.launchers import garmi_mmt, parti_mmt
 from garmi_parti.parti import mmt
 from garmi_parti.teleoperation import containers
 
+JNT = containers.JointStates(q=np.zeros(7), dq=np.zeros(7), tau_ext=np.zeros(7))
+CMD = pickle.dumps(containers.TwoArmJointStates(left=JNT, right=JNT))
+
 
 class TestGarmi(unittest.TestCase):
     @mock.patch("builtins.input", return_value="")
@@ -37,7 +40,7 @@ class TestGarmi(unittest.TestCase):
         leader.pre_teleop()
         leader.start_teleop()
         leader.get_sync_command()
-        leader.set_command(b"")
+        leader.set_command(CMD)
         joint_states: containers.TwoArmJointStates = pickle.loads(leader.get_command())
         self.assert_joint_states(joint_states.left)
         self.assert_joint_states(joint_states.right)
