@@ -74,7 +74,9 @@ class Client:
         before continuing teleoperation.
         """
         with self.mux:
-            if not self.rpc.synchronize(self.teleoperator.get_sync_command(), end_effector):
+            if not self.rpc.synchronize(
+                self.teleoperator.get_sync_command(), end_effector
+            ):
                 msg = "Synchronization failed"
                 raise RuntimeError(msg)
             self.rpc.unpause(end_effector)

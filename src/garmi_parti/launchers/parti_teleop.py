@@ -86,6 +86,9 @@ def main() -> None:
     joysticks.start_reading()
 
     cli = client.Client(leader, args.host, args.port)
+    if args.mode == "joint":
+        leader.left.arm.stop_controller()
+        leader.right.arm.stop_controller()
     cli.pause()
     joysticks.set_client(cli)
     logger = interfaces.TwoArmLogger(leader)

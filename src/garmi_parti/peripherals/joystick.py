@@ -72,9 +72,9 @@ class SerialJoysticks:
 
     def read_id(self, port: str | None, lines_to_ignore: int = 3) -> str | None:
         try:
-            with serial.Serial(port, 9600, timeout=1) as ser:
-                ser.readlines(lines_to_ignore)
-                line = ser.readline().decode("utf-8", errors="ignore").strip()
+            with serial.Serial(port, 9600, timeout=1) as com:
+                com.readlines(lines_to_ignore)
+                line = com.readline().decode("utf-8", errors="ignore").strip()
                 if "ID=left" in line:
                     return "left"
                 if "ID=right" in line:
@@ -97,10 +97,10 @@ class SerialJoysticks:
 
     def read_loop(self, port: str, device_id: str) -> None:
         try:
-            with serial.Serial(port, 9600, timeout=0.1) as ser:
+            with serial.Serial(port, 9600, timeout=0.1) as com:
                 while not self.stop_threads.is_set():
                     try:
-                        line = ser.readline().decode("utf-8", errors="ignore").strip()
+                        line = com.readline().decode("utf-8", errors="ignore").strip()
                         if line:
                             self.parse_line(line, device_id)
                     except UnicodeDecodeError as e:

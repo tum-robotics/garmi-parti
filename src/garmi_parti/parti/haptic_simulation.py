@@ -8,7 +8,7 @@ import csv
 import pathlib
 import pickle
 import threading
-from dm_robotics.agentflow import spec_utils
+
 import dm_env
 import numpy as np
 import panda_py
@@ -18,6 +18,7 @@ import zmq
 from dm_control import composer, mjcf
 from dm_control.composer.observation import observable
 from dm_env import specs
+from dm_robotics.agentflow import spec_utils
 from dm_robotics.agentflow.preprocessors import timestep_preprocessor
 from dm_robotics.moma import effector
 from dm_robotics.moma.sensors import robot_arm_sensor
@@ -80,7 +81,9 @@ class TeleopAgent:
                 client, "/detect_plane/pose", "geometry_msgs/Pose"
             )
             listener_2.subscribe(self._plane_callback)
-            listener_3 = roslibpy.Topic(client, "/ft_compensated", "geometry_msgs/WrenchStamped")
+            listener_3 = roslibpy.Topic(
+                client, "/ft_compensated", "geometry_msgs/WrenchStamped"
+            )
             listener_3.subscribe(self._ft_callback)
 
     def shutdown(self) -> None:
@@ -109,21 +112,23 @@ class TeleopAgent:
     def _ft_callback(self, message: dict) -> None:
         force = message["wrench"]["force"]
         torque = message["wrench"]["torque"]
-        self._ft = np.array([force["x"], force["y"], force["z"], torque["x"], torque["y"], torque["z"]])
+        self._ft = np.array(
+            [force["x"], force["y"], force["z"], torque["x"], torque["y"], torque["z"]]
+        )
 
-    def get_force_torque_obs(self, timestep: timestep_preprocessor.PreprocessorTimestep) -> np.ndarray:
+    def get_force_torque_obs(
+        self, timestep: timestep_preprocessor.PreprocessorTimestep
+    ) -> np.ndarray:
         del timestep
         return self._ft
 
     def _correct_plane_declination(self, x: float) -> float:
         # apply linear correction to the plane declination measurements
         central_measurement = -2.4
-        solution = np.array([[1.37, 0.0576], [1.50, 0.0629]])  #[x, y] for y = ax + b
+        solution = np.array([[1.37, 0.0576], [1.50, 0.0629]])  # [x, y] for y = ax + b
         if x <= central_measurement:
-            return solution[0,0]*x + solution[0,1]
-        elif x > central_measurement:
-            return solution[1,0]*x + solution[1,1]
-
+            return solution[0, 0] * x + solution[0, 1]
+        return solution[1, 0] * x + solution[1, 1]
 
     def _plane_callback(self, message: dict) -> None:
         normal = [
@@ -134,7 +139,9 @@ class TeleopAgent:
         global_normal = T_0_right0[:3, :3] @ normal
         orientation = tr.quat_between_vectors([0, 0, 1], global_normal[:3])
 
-        self._plane_declination = self._correct_plane_declination(tr.quat_to_euler(orientation)[0])
+        self._plane_declination = self._correct_plane_declination(
+            tr.quat_to_euler(orientation)[0]
+        )
 
     def _object_callback(self, message: dict) -> None:
         # object in right arm base frame
@@ -425,7 +432,9 @@ class FollowerSensor(robot_arm_sensor.RobotArmSensor):
             self.get_obs_key(
                 joint_observations.Observations.JOINT_TORQUES
             ): observable.Generic(self._joint_torques),
-            "follower_virtual_joint_torques":observable.Generic(self._virtual_joint_torques)
+            "follower_virtual_joint_torques": observable.Generic(
+                self._virtual_joint_torques
+            ),
         }
         for obs in self._observables.values():
             obs.enabled = True
@@ -449,10 +458,11 @@ class FollowerSensor(robot_arm_sensor.RobotArmSensor):
         return self._follower_joint_state.left.dq.velocites
 
     def _joint_torques(self, physics: mjcf.Physics) -> np.ndarray:
+        del physics
         if self._follower_joint_state.left is None:
             return np.zeros(7)
         return self._follower_joint_state.left.tau_ext.torques
-    
+
     def _virtual_joint_torques(self, physics: mjcf.Physics) -> np.ndarray:
         if self._follower_joint_state.left is None:
             return np.zeros(7)
@@ -469,10 +479,8 @@ class FollowerSensor(robot_arm_sensor.RobotArmSensor):
     def close(self) -> None:
         self.context.term()
 
-def goal_reward(observation: spec_utils.ObservationValue):
-  """Computes reward."""
-  error = np.array([0,-0.05, 2.356])-observation["virtual_object"]
-  return -np.linalg.norm(error)
-  goal_distance = np.linalg.norm(observation['goal_pose'][:3] -
-                                 observation['panda_tcp_pos'])
-  return np.clip(1.0 - goal_distance, 0, 1)
+
+def goal_reward(observation: spec_utils.ObservationValue) -> float:
+    """Computes reward."""
+    error = np.array([0, -0.05, 2.356]) - observation["virtual_object"]
+    return -np.linalg.norm(error)

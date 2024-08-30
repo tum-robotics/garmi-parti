@@ -149,7 +149,9 @@ def main() -> None:
         args.ros_port,
     )
 
-    add_force_torque_obs = observation_transforms.AddObservation("force_torque", agent.get_force_torque_obs, specs.Array((6,), dtype=np.float64))
+    add_force_torque_obs = observation_transforms.AddObservation(
+        "force_torque", agent.get_force_torque_obs, specs.Array((6,), dtype=np.float64)
+    )
 
     env_builder.add_extra_sensors([sim.FollowerSensor(env_builder.robots["left"].arm)])
     env_builder.add_timestep_preprocessors(
@@ -178,7 +180,7 @@ def main() -> None:
                     "plane",
                     "virtual_plane",
                     "updating",
-                    "force_torque"
+                    "force_torque",
                 ]
             ),
             rewards.ComputeReward(sim.goal_reward),
