@@ -9,10 +9,10 @@ garmi\_parti.peripherals package
 Submodules
 ----------
 
-garmi\_parti.peripherals.gamepad module
----------------------------------------
+garmi\_parti.peripherals.joystick module
+----------------------------------------
 
-.. automodule:: garmi_parti.peripherals.gamepad
+.. automodule:: garmi_parti.peripherals.joystick
    :members:
    :undoc-members:
    :show-inheritance:
