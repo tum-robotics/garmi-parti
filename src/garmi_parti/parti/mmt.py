@@ -9,7 +9,7 @@ import threading
 
 import zmq
 
-from ..teleoperation import interfaces
+from ..teleoperation import containers, interfaces
 
 
 class Leader(interfaces.Interface):
@@ -19,26 +19,33 @@ class Leader(interfaces.Interface):
     """
 
     def __init__(self) -> None:
+        self._follower_joint_states = containers.TwoArmJointStates(
+            left=None, right=None
+        )
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.SUB)
         self.socket.connect("ipc:///tmp/parti-haptic-sim")
         self.socket.setsockopt(zmq.SUBSCRIBE, b"")
-        self._receive()
+        self.context_pub = zmq.Context()
+        self.socket_pub = self.context_pub.socket(zmq.PUB)
+        self.socket_pub.connect("ipc:///tmp/parti-haptic-sim-obs")
+        self._receive_send()
         self.thread = threading.Thread(target=self._run)
         self.thread.start()
 
     def _run(self) -> None:
         while True:
             try:
-                self._receive()
+                self._receive_send()
             except zmq.error.ContextTerminated:
                 break
         self.socket.close()
 
-    def _receive(self) -> None:
-        data = pickle.loads(self.socket.recv())
-        self.joint_positions = data[0]
-        self.joint_velocities = data[1]
+    def _receive_send(self) -> None:
+        self.joint_states: containers.TwoArmJointStates = pickle.loads(
+            self.socket.recv()
+        )
+        self.socket_pub.send(pickle.dumps(self._follower_joint_states))
 
     def pre_teleop(self) -> bool:
         return True
@@ -46,21 +53,24 @@ class Leader(interfaces.Interface):
     def start_teleop(self) -> None:
         pass
 
-    def pause(self) -> None:
+    def pause(self, end_effector: str = "") -> None:
         pass
 
-    def unpause(self) -> None:
+    def unpause(self, end_effector: str = "") -> None:
         pass
 
     def post_teleop(self) -> bool:
         self.context.term()
+        self.thread.join()
+        self.socket_pub.close()
+        self.context_pub.term()
         return True
 
     def get_command(self) -> bytes:
-        return pickle.dumps(self.joint_velocities)
+        return pickle.dumps(self.joint_states)
 
     def set_command(self, command: bytes) -> None:
-        pass
+        self._follower_joint_states = pickle.loads(command)
 
     def open(self, end_effector: str = "") -> None:
         pass
@@ -69,7 +79,13 @@ class Leader(interfaces.Interface):
         pass
 
     def get_sync_command(self) -> bytes:
-        return pickle.dumps(self.joint_positions)
+        if self.joint_states.left is None or self.joint_states.right is None:
+            return b""
+        return pickle.dumps(
+            containers.TwoArmJointPositions(
+                left=self.joint_states.left.q, right=self.joint_states.right.q
+            )
+        )
 
-    def set_sync_command(self, command: bytes) -> None:
+    def set_sync_command(self, command: bytes, end_effector: str = "") -> None:
         pass

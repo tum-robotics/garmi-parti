@@ -14,10 +14,10 @@ from . import interfaces, utils
 
 _logger = logging.getLogger("teleoperation.client")
 
-UDP_TIMEOUT = 2.0
+UDP_TIMEOUT = 10.0
 UDP_TIMESTEP = 1e-3
 
-socket.setdefaulttimeout(5.0)
+socket.setdefaulttimeout(10.0)
 
 
 class Client:
@@ -36,6 +36,7 @@ class Client:
         self.port = port
         self.teleoperator = teleoperator
         self.running_udp = False
+        self.mux = threading.Lock()
         self._start()
 
     def _run_udp(self) -> None:
@@ -58,36 +59,42 @@ class Client:
                 break
         udp.close()
 
-    def pause(self) -> None:
+    def pause(self, end_effector: str = "") -> None:
         """
         Pause the teleoperation service.
         """
-        self.rpc.pause()
-        self.teleoperator.pause()
+        with self.mux:
+            self.rpc.pause(end_effector)
+            self.teleoperator.pause(end_effector)
 
-    def unpause(self) -> None:
+    def unpause(self, end_effector: str = "") -> None:
         """
         Unpause the teleoperation service.
         Triggers synchronization events of the teleoperator interfaces
         before continuing teleoperation.
         """
-        if not self.rpc.synchronize(self.teleoperator.get_sync_command()):
-            msg = "Synchronization failed"
-            raise RuntimeError(msg)
-        self.rpc.unpause()
-        self.teleoperator.unpause()
+        with self.mux:
+            if not self.rpc.synchronize(
+                self.teleoperator.get_sync_command(), end_effector
+            ):
+                msg = "Synchronization failed"
+                raise RuntimeError(msg)
+            self.rpc.unpause(end_effector)
+            self.teleoperator.unpause(end_effector)
 
     def open(self, end_effector: str = "") -> None:
         """
         Sends a request to open an end-effector.
         """
-        self.rpc.open(end_effector)
+        with self.mux:
+            self.rpc.open(end_effector)
 
     def close(self, end_effector: str = "") -> None:
         """
         Sends a request to close an end-effector.
         """
-        self.rpc.close(end_effector)
+        with self.mux:
+            self.rpc.close(end_effector)
 
     def shutdown(self) -> None:
         """
@@ -109,7 +116,7 @@ class Client:
             msg = "Connection failed"
             raise RuntimeError(msg)
         self.teleoperator.pre_teleop()
-        if not self.rpc.synchronize(self.teleoperator.get_sync_command()):
+        if not self.rpc.synchronize(self.teleoperator.get_sync_command(), ""):
             msg = "Synchronization failed"
             raise RuntimeError(msg)
 

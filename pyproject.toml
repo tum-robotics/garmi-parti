@@ -11,7 +11,7 @@ authors = [
 description = "Teleoperation between Garmi and Parti"
 readme = "README.md"
 license.file = "LICENSE"
-requires-python = ">=3.8, <3.11"
+requires-python = ">=3.8, <3.13"
 classifiers = [
   "Development Status :: 1 - Planning",
   "Intended Audience :: Science/Research",
@@ -24,14 +24,19 @@ classifiers = [
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering",
   "Typing :: Typed",
 ]
 dynamic = ["version"]
 dependencies = [
-  "panda-python",
-  "dm-robotics-panda",
+  "panda-python>=0.7.5",
+  "dm-robotics-panda>=0.4.7",
   "pyzmq",
+  "roslibpy",
+  "spatialmath-python",
+  "pyserial",
 ]
 
 [project.optional-dependencies]

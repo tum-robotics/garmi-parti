@@ -50,10 +50,12 @@ class CartesianLeader(interfaces.PandaInterface):
         )
         container.controller.set_control(np.r_[force_d, torque_d])
 
-    def pause(self) -> None:
+    def pause(self, end_effector: str = "") -> None:
+        del end_effector
         self.paused = True
 
-    def unpause(self) -> None:
+    def unpause(self, end_effector: str = "") -> None:
+        del end_effector
         self.panda.reinitialize()
         self.paused = False
 
@@ -78,21 +80,21 @@ class JointLeader(interfaces.PandaInterface):
 
     def _get_command(
         self, container: containers.TeleopContainer
-    ) -> containers.JointVelocities:
-        return containers.JointVelocities(container.arm.get_state().dq)
+    ) -> containers.JointStates:
+        return containers.JointStates.from_state(container.arm.get_state())
 
     def set_command(self, command: bytes) -> None:
-        joint_torques: containers.JointTorques = pickle.loads(command)
-        self._set_command(self.panda, joint_torques)
+        joint_states: containers.JointStates = pickle.loads(command)
+        self._set_command(self.panda, joint_states)
 
     def _set_command(
         self,
         container: containers.TeleopContainer,
-        joint_torques: containers.JointTorques,
+        joint_states: containers.JointStates,
     ) -> None:
         self.fdir(container)
         container.controller.set_control(
-            -container.params.gain_joint_torque * np.array(joint_torques.torques)
+            -container.params.gain_joint_torque * np.array(joint_states.tau_ext.torques)
         )
 
     def get_sync_command(self) -> bytes:
@@ -103,10 +105,12 @@ class JointLeader(interfaces.PandaInterface):
     ) -> containers.JointPositions:
         return containers.JointPositions(container.arm.get_state().q)
 
-    def pause(self) -> None:
+    def pause(self, end_effector: str = "") -> None:
+        del end_effector
         self.panda.arm.stop_controller()
 
-    def unpause(self) -> None:
+    def unpause(self, end_effector: str = "") -> None:
+        del end_effector
         self.start_teleop()
 
 
@@ -160,10 +164,12 @@ class CartesianFollower(interfaces.PandaInterface):
         )
         container.controller.set_control(position_d, orientation_d.as_quat())
 
-    def pause(self) -> None:
+    def pause(self, end_effector: str = "") -> None:
+        del end_effector
         self.panda.arm.stop_controller()
 
-    def unpause(self) -> None:
+    def unpause(self, end_effector: str = "") -> None:
+        del end_effector
         self.start_teleop()
 
 
@@ -185,26 +191,32 @@ class JointFollower(interfaces.PandaInterface):
 
     def _get_command(
         self, container: containers.TeleopContainer
-    ) -> containers.JointTorques:
-        return containers.JointTorques(container.arm.get_state().tau_ext_hat_filtered)
+    ) -> containers.JointStates:
+        return containers.JointStates.from_state(container.arm.get_state())
 
     def set_command(self, command: bytes) -> None:
-        joint_velocities: containers.JointVelocities = pickle.loads(command)
-        self._set_command(joint_velocities, self.panda)
+        joint_states: containers.JointStates = pickle.loads(command)
+        self._set_command(joint_states, self.panda)
 
     def _set_command(
         self,
-        joint_velocities: containers.JointVelocities,
+        joint_states: containers.JointStates,
         container: containers.TeleopContainer,
     ) -> None:
         self.fdir(container)
-        container.controller.set_control(joint_velocities.velocites)
+        ctrl: controllers.IntegratedVelocity = container.controller
+        error = ctrl.get_qd() - joint_states.q.positions
+        dqd = joint_states.dq.velocites - container.params.gain_drift * error
+        container.controller.set_control(dqd)
 
-    def pause(self) -> None:
+    def pause(self, end_effector: str = "") -> None:
+        del end_effector
         self.panda.arm.stop_controller()
 
-    def unpause(self) -> None:
+    def unpause(self, end_effector: str = "") -> None:
+        del end_effector
         self.start_teleop()
 
-    def set_sync_command(self, command: bytes) -> None:
+    def set_sync_command(self, command: bytes, end_effector: str = "") -> None:
+        del end_effector
         self.move_arm(pickle.loads(command))

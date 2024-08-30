@@ -4,7 +4,6 @@ import argparse
 import logging
 
 from ..parti import mmt
-from ..peripherals import gamepad
 from ..teleoperation import client
 
 logging.basicConfig(level=logging.INFO)
@@ -20,7 +19,6 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", type=str, default="localhost")
     parser.add_argument("-p", "--port", type=int, default=13701)
-    parser.add_argument("-gp", "--gamepad-port", type=int, default=13702)
     args = parser.parse_args()
 
     leader = mmt.Leader()
@@ -29,7 +27,5 @@ def main() -> None:
     except ConnectionRefusedError:
         leader.post_teleop()
         raise
-    gamepad_handle = gamepad.GamepadHandle(cli, "localhost", args.gamepad_port)
     client.user_interface(cli)
     cli.shutdown()
-    gamepad_handle.stop()
