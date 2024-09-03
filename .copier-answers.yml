@@ -5,8 +5,8 @@ backend: hatch
 email: jean.elsner@tum.de
 full_name: Jean Elsner
 license: Apache
-org: JeanElsner
+org: tum-robotics
 project_name: garmi-parti
 project_short_description: Teleoperation between Garmi and Parti
-url: https://github.com/JeanElsner/garmi-parti
+url: https://github.com/tum-robotics/garmi-parti
 vcs: true
