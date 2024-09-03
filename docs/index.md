@@ -4,6 +4,8 @@
 :maxdepth: 2
 :hidden:
 
+getting_started
+api/garmi_parti
 ```
 
 ```{include} ../README.md

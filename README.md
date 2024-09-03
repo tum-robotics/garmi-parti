@@ -5,6 +5,32 @@
 [![PyPI version][pypi-version]][pypi-link]
 [![PyPI platforms][pypi-platforms]][pypi-link] [![codecov][cov-badge]][cov-link]
 
+Teleoperation framework for the GARMI and PARTI systems as well as the Franka robot in general. Includes support for Model-Mediated Teleoperation (MMT) with multi-body physics simulation. 
+
+## Install
+
+To install run
+
+```
+pip install garmi-parti
+```
+
+or if you're working with the code in a local clone of the repository
+
+```
+pip install -v -e .[dev]
+```
+
+## Getting Started
+This package installs executables for various teleoperation configurations (two-arm, single-arm, MMT, etc.). Check out the [documentation](https://garmi-parti.readthedocs.io/en/latest/getting_started.html) for details on how to get started running the various teleoperation configurations.
+
+## Requirements
+
+The robots are controlled using
+[panda-py](https://github.com/JeanElsner/panda-py), which is automatically
+installed from pypi as part of the requirements. However, if you use an older
+firmware or the FR3, you will need to manually install the correct version.
+
 <!-- SPHINX-START -->
 
 <!-- prettier-ignore-start -->
