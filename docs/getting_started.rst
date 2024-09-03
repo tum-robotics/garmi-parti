@@ -6,7 +6,7 @@ Executables
 
 As an end-user you will probably mostly interact with the executable scripts
 shipped with this package. If you're using the Docker version or installed the
-package using `pip`, the scripts will be installed to the environment's path
+package using ``pip``, the scripts will be installed to the environment's path
 and can be called from the terminal.
 
 The following table lists the currently available executables.
